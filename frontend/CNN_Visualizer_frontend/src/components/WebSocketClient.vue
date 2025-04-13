@@ -1,10 +1,4 @@
 <template>
-    <div class="p-4">
-      <h1 class="text-2xl font-bold mb-4">WebSocket Chat</h1>
-      <ul>
-        <li v-for="(msg, index) in messages" :key="index">{{ msg }}</li>
-      </ul>
-    </div>
 </template>
 
 <script setup lang="ts">
