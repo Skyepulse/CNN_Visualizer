@@ -2,20 +2,12 @@
 </template>
 
 <script setup lang="ts">
-    import { onMounted, ref } from 'vue'
+    import { onMounted } from 'vue'
+    import { useWebSocket } from '@src/composables/useWebSocket'
 
-    const messages = ref<string[]>([])
-    let socket: WebSocket
+    const { connect } = useWebSocket('ws://localhost:5000/ws')
 
     onMounted(() => {
-        socket = new WebSocket('ws://localhost:8000/ws')
-
-        socket.onmessage = (event) => {
-            messages.value.push(event.data)
-        }
-
-        socket.onopen = () => {
-            socket.send("Hello from frontend")
-        }
+        connect()
     })
 </script>
