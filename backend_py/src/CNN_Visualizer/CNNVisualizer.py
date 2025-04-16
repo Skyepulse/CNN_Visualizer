@@ -1,4 +1,5 @@
 from Application.application import MyServer
+from CNN_Visualizer.CNNModelHolder import LeNetLoader
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from datetime import datetime
 import base64
@@ -14,6 +15,9 @@ class CNNServer(MyServer):
 
         self.images = {}
         self.image_filepaths = {}
+        self.modelHolder = LeNetLoader(model_path="../../other/Models/mnist_leNet.pth", dataset="mnist")
+
+        self.modelHolder.load_model()
 
     #==========================#
     async def process_message(self, type: str, data: str, websocket: WebSocket):
@@ -36,9 +40,7 @@ class CNNServer(MyServer):
     
     #==========================#
     async def handle_mnist_image(self, data: str, websocket: WebSocket):
-        # Handle the MNIST image data here
-        print(Fore.CYAN, f"MNIST image data received from {websocket.client.port}", Style.RESET_ALL)
-        
+        # Handle the MNIST image data here        
         image_data = base64.b64decode(data)
         os.makedirs("mnist_images", exist_ok=True)
         filename = f"mnist_{str(websocket.client.port)}.png"
@@ -54,9 +56,19 @@ class CNNServer(MyServer):
         self.images[websocket] = image_data
         self.image_filepaths[websocket] = filepath
         
-        print(f"MNIST image saved to {filepath}")
-
         await self.sendMessage(websocket, "mnist-image", data)
+
+        # Perform inference
+        image_tensor = await self.modelHolder.data_to_tensor(image_data)
+        prediction = await self.modelHolder.predict(image_tensor)
+
+        match prediction:
+            case -1:
+                print(Fore.RED, f"Error during prediction for image from {websocket.client.port}", Style.RESET_ALL)
+                await self.sendMessage(websocket, "mnist-prediction", "error")
+            case _:
+                print(Fore.GREEN, f"Prediction for image from {websocket.client.port}: {prediction}", Style.RESET_ALL)
+                await self.sendMessage(websocket, "mnist-prediction", str(prediction))
 
     #==========================#
     async def on_connect(self, websocket: WebSocket):
