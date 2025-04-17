@@ -181,6 +181,13 @@
     sendCanvasAs28x28Grayscale()
   }
 
+  type Visual = {
+    title: string;
+    width: number;
+    height: number;
+    data: number[]; // Flat grayscale pixel array
+  };
+
   //================================//
   watchEffect(() => {
     // Check if there are new messages
@@ -191,11 +198,59 @@
     if (lastMessage !== null && lastMessage.type === 'mnist-image') {
       
       const base64String = lastMessage.data
-      outputImageSource.value = `data:image/png;base64,${base64String}`
-      hasImage.value = true
+      //outputImageSource.value = `data:image/png;base64,${base64String}`
+      //hasImage.value = true
 
       // pop the message from the array
       messages.value.pop()
     }
+
+    else if (lastMessage !== null && lastMessage.type === 'mnist-prediction') {
+      const data = lastMessage.data
+      // decode data with json
+      try{
+
+        const decodedData = JSON.parse(data)
+        const prediction = decodedData.prediction
+        console.log('Prediction:', prediction)
+
+        const decodedVisuals: Visual[] = decodedData.visuals
+
+        const originalImage: Visual = decodedVisuals[0]
+        outputImageSource.value = saveVisualAsPNG(originalImage)
+        hasImage.value = true
+
+      } catch (error) {
+        console.error('Error decoding data:', error)
+      }
+
+      messages.value.pop()
+    }
   })
+
+  //================================//
+  const saveVisualAsPNG = (visual: Visual): string => 
+  {
+    const canvas = document.createElement('canvas')
+    canvas.width = visual.width
+    canvas.height = visual.height
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return ''
+
+    const imageData = ctx.createImageData(visual.width, visual.height)
+    const data = imageData.data
+
+    for (let i = 0; i < visual.data.length; i++) {
+      const value = visual.data[i]
+      data[i * 4] = value // R
+      data[i * 4 + 1] = value // G
+      data[i * 4 + 2] = value // B
+      data[i * 4 + 3] = 255 // A
+    }
+
+    ctx.putImageData(imageData, 0, 0)
+
+    return canvas.toDataURL('image/png')
+  }
 </script>

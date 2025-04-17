@@ -7,7 +7,6 @@ from PIL import Image
 from torchvision import transforms
 import io
 
-
 #==========================#
 class LeNetLoader:
     def __init__(self, model_path: str, dataset: str = 'mnist'):   
@@ -30,7 +29,7 @@ class LeNetLoader:
         return self.model
     
     #==========================#
-    async def predict(self, image: torch.Tensor) -> int:
+    async def predict(self, image: torch.Tensor):
         """
         Perform inference on a single MNIST image tensor.
 
@@ -54,11 +53,11 @@ class LeNetLoader:
                 output = self.model(image)
                 prediction = torch.argmax(output, dim=1).item()
 
-            return prediction
+            return prediction, self.model.visuals
         
         except Exception as e:
             print(Fore.RED, f"Error during prediction: {e}", Style.RESET_ALL)
-            return -1
+            return -1, []
         
     #==========================#
     async def data_to_tensor(self, data: bytes) -> torch.Tensor:
@@ -113,11 +112,78 @@ class LeNet(nn.Module):
             num_features = x.view(1, -1).shape[1]
             self.fc1 = nn.Linear(num_features, 120)
 
-    def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-        x = x.view(x.shape[0], -1)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.log_softmax(self.fc3(x), dim=1)
-        return x
+    def forward(self, x, save_visuals=True):
+        """
+        Forward pass through the network.
+        Args:
+            x (torch.Tensor): Input tensor.
+            save_visuals (bool): Flag to save visualizations.
+        Returns:
+            torch.Tensor: Output tensor after passing through the network.
+        """
+        self.visuals = []
+        visuals = []
+
+        if save_visuals:
+            visuals.append(self.prepare_visuals("Input Image", x[0,0].detach().cpu().numpy()))
+        
+        x1 = self.conv1(x)
+        if save_visuals:
+            for i in range(x1.shape[1]):
+                visuals.append(self.prepare_visuals(f"Conv1 Feature Map {i}", x1[0,i].detach().cpu().numpy()))
+
+        x1_relu = F.relu(x1)
+        x2 = self.pool(x1_relu)
+        if save_visuals:
+            for i in range(x2.shape[1]):
+                visuals.append(self.prepare_visuals(f"Pool1 Feature Map {i}", x2[0,i].detach().cpu().numpy()))
+
+        x3 = self.conv2(x2)
+        if save_visuals:
+            for i in range(x3.shape[1]):
+                visuals.append(self.prepare_visuals(f"Conv2 Feature Map {i}", x3[0,i].detach().cpu().numpy()))
+
+        x3_relu = F.relu(x3)
+        x4 = self.pool(x3_relu)
+        if save_visuals:
+            for i in range(x4.shape[1]):
+                visuals.append(self.prepare_visuals(f"Pool2 Feature Map {i}", x4[0,i].detach().cpu().numpy()))
+
+        x_flat = x4.view(x4.shape[0], -1)
+        if save_visuals:
+            flat_vis = x_flat[0].detach().cpu().numpy().reshape(1, -1)
+            visuals.append(self.prepare_visuals("Flattened Feature Map (400)", flat_vis))
+
+        x5 = F.relu(self.fc1(x_flat))
+        if save_visuals:
+            fc1_vis = x5[0].detach().cpu().numpy().reshape(10, 12)
+            visuals.append(self.prepare_visuals("FC1 Output (120)", fc1_vis))
+
+        x6 = F.relu(self.fc2(x5))
+        if save_visuals:
+            fc2_vis = x6[0].detach().cpu().numpy().reshape(7, 12)
+            visuals.append(self.prepare_visuals("FC2 Output (84)", fc2_vis))
+
+        x7 = self.fc3(x6)
+        out = F.log_softmax(x7, dim=1)
+        if save_visuals:
+            fc3_vis = out[0].detach().cpu().numpy().reshape(1, 10)
+            visuals.append(self.prepare_visuals("FC3 Output (10 logits)", fc3_vis))
+
+        self.visuals = visuals
+
+        return out
+
+    def prepare_visuals(self, name, array):
+        # Normalize to [0, 255] uint8
+        arr = array - np.min(array)
+        if np.max(arr) != 0:
+            arr = arr / np.max(arr)
+        arr = (arr * 255).astype(np.uint8)
+
+        return {
+            "title": name,
+            "width": arr.shape[1],
+            "height": arr.shape[0],
+            "data": arr.flatten().tolist(),
+        }

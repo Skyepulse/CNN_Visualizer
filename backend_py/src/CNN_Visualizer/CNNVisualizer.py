@@ -5,6 +5,7 @@ from datetime import datetime
 import base64
 import os
 from colorama import Fore, Style
+import json
 
 #==========================#
 class CNNServer(MyServer):
@@ -60,15 +61,16 @@ class CNNServer(MyServer):
 
         # Perform inference
         image_tensor = await self.modelHolder.data_to_tensor(image_data)
-        prediction = await self.modelHolder.predict(image_tensor)
+        prediction, visuals = await self.modelHolder.predict(image_tensor)
+
+        print(Fore.GREEN, f"Prediction for image from {websocket.client.port}: {prediction}", Style.RESET_ALL)
 
         match prediction:
             case -1:
                 print(Fore.RED, f"Error during prediction for image from {websocket.client.port}", Style.RESET_ALL)
-                await self.sendMessage(websocket, "mnist-prediction", "error")
+                await self.sendMessage(websocket, "mnist-prediction-error", "error")
             case _:
-                print(Fore.GREEN, f"Prediction for image from {websocket.client.port}: {prediction}", Style.RESET_ALL)
-                await self.sendMessage(websocket, "mnist-prediction", str(prediction))
+                await self.package_and_send_prediction(websocket, prediction, visuals)
 
     #==========================#
     async def on_connect(self, websocket: WebSocket):
@@ -84,3 +86,15 @@ class CNNServer(MyServer):
         if websocket in self.image_filepaths:
             os.remove(self.image_filepaths[websocket])
             del self.image_filepaths[websocket]
+
+    #==========================#
+    async def package_and_send_prediction(self, websocket: WebSocket, prediction: int, visuals: list):
+        for visual in visuals:
+            visual["data"] = [int(v) for v in visual["data"]] # ensure integers
+
+        payload = {
+            "prediction": prediction,
+            "visuals": visuals
+        }
+
+        await self.sendMessage(websocket, "mnist-prediction", json.dumps(payload))
