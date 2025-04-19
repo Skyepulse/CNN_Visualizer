@@ -25,7 +25,13 @@
                 Your output image will be shown here
             </p>
             </div>
-            <BabylonCanvas :height="400" :width="400" ref="bbCanvasRef"></BabylonCanvas>
+            <BabylonCanvas 
+              v-if="fpsDisplay"
+              :height="400" 
+              :width="400" 
+              :fpsDisplay="fpsDisplay" 
+              ref="bbCanvasRef"
+            ></BabylonCanvas>
         </div>
         <div class="flex space-x-4">
             <button
@@ -40,6 +46,12 @@
             >
                 Save
             </button>
+            <div>
+              <p class="text-gray-500 text-sm">FPS:</p>
+              <p ref="fpsDisplay" class="text-gray-700 text-lg font-bold">
+                0
+              </p>
+            </div>
         </div>
     </div>
 </template>
@@ -48,8 +60,7 @@
   import { ref, onMounted, watchEffect } from 'vue'
   import { useWebSocket } from '@src/composables/useWebSocket'
   import BabylonCanvas from './babylonCanvas.vue'
-  import { addVisual } from '@src/scenes/MyFirstScene'
-  import { Scene } from '@babylonjs/core'
+  import { launchMnistAnimation, resetScene } from '@src/scenes/MyFirstScene'
   import type { SceneInformation } from '@src/scenes/MyFirstScene'
 
   //================================//
@@ -67,6 +78,7 @@
   const canvas = ref<HTMLCanvasElement | null>(null)
   const isDrawing = ref<boolean>(false)
   const ctx = ref<CanvasRenderingContext2D | null>(null)
+  const fpsDisplay = ref<HTMLParagraphElement | undefined>(undefined)
 
   const outputImageSource = ref<string>('')
   const hasImage = ref<boolean>(false)
@@ -141,6 +153,16 @@
 
     hasDrawn.value = false
     drawInitialText()
+
+    // reset scene
+    if(bbCanvasRef.value?.getSceneInformation() !== undefined && bbCanvasRef.value?.getSceneInformation() !== null){
+      const sceneInfo: SceneInformation = bbCanvasRef.value.getSceneInformation() as SceneInformation
+      resetScene(sceneInfo)
+    }
+
+    // reset center image
+    outputImageSource.value = ''
+    hasImage.value = false
   }
 
   //================================//
@@ -229,14 +251,10 @@
         outputImageSource.value = await saveVisualAsPNG(originalImage)
         hasImage.value = true
 
-        decodedVisuals.forEach((visual: Visual, index: number) => {
-          const sceneInfo = bbCanvasRef.value?.getSceneInformation() as SceneInformation
-
-          //wait 1 second
-          setTimeout(() => {
-            addVisual(sceneInfo, index, visual)
-          }, 1000 * index)
-        })
+        if(bbCanvasRef.value?.getSceneInformation() !== undefined && bbCanvasRef.value?.getSceneInformation() !== null){
+          const sceneInfo: SceneInformation = bbCanvasRef.value.getSceneInformation() as SceneInformation
+          await launchMnistAnimation(sceneInfo, decodedVisuals)
+        }
 
       } catch (error) {
         console.error('Error decoding data:', error)

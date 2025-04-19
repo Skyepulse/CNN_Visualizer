@@ -11,9 +11,10 @@
     import type { SceneInformation } from '@src/scenes/MyFirstScene';
 
     //================================//
-    defineProps<{
+    const props = defineProps<{
         height: number
         width: number
+        fpsDisplay: HTMLElement | undefined
     }>()
 
     //================================//
@@ -28,7 +29,7 @@
     //================================//
     onMounted(async () => {
         if (bjsCanvas.value) {
-            sceneInfo.value = await createScene(bjsCanvas.value);
+            sceneInfo.value = await createScene(bjsCanvas.value, props.fpsDisplay);
         }
     });
 </script>
