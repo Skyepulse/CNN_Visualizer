@@ -363,60 +363,65 @@ export const addVisualFromConvolution = async function(sceneInformation: SceneIn
         finalColorsData.set([gray, gray, gray, 1.0], i * 4); // RGBA format
     }
 
-    const translationOffset = new Vector3(0, 0, -10);
-
-    for (let i = 0; i < 14*14*6; i++) {
-        const matrix = Matrix.FromArray(fromWholeMatrix, i * 16);
-        const currentPos = matrix.getTranslation();
-        const newPos = currentPos.add(translationOffset);
-        const translatedMatrix = Matrix.Translation(newPos.x, newPos.y, newPos.z);
-        translatedMatrix.copyToArray(fromWholeMatrix, i * 16);
-    }
-
-    baseCube.material = new StandardMaterial(`baseCubeMaterial_${numInstances}`, sceneInformation.scene);
-    baseCube.thinInstanceSetBuffer("matrix", fromWholeMatrix, 16);
-    baseCube.thinInstanceSetBuffer("color", fromWholeColors, 4);
-
-    numInstances++;
-
-    /*
     const currentToken = sceneInformation.animationToken ?? 0;
     const globalStartTime = performance.now();
 
-    
-    const updateMatrices = () =>
+    const kernelArea = kernelSize * kernelSize * numInputs;
+    const totalFinalCubes = width * height;
+
+    const perCubeFinalWholeMatrix = new Float32Array(totalFinalCubes * kernelSize * kernelSize * lastVisualInfos.length *16);
+    const perCubeFinalColors = new Float32Array(totalFinalCubes * kernelSize * kernelSize * lastVisualInfos.length *16);
+
+    for (let i = 0; i < totalFinalCubes; i++)
     {
+        const kernelIndexes = getKernelIndexes(i, inWidth, numInputs, width, kernelSize, stride);
+        // Push the positions of those indexes into the perCubeFinalWholeMatrix and perCubeFinalColors
+        for (let j = 0; j < kernelIndexes.length; j++)
+        {
+            const kernelIndex = kernelIndexes[j];
+
+            const fromMat = Matrix.FromArray(fromWholeMatrix, kernelIndex * 16);
+            fromMat.copyToArray(perCubeFinalWholeMatrix, i * kernelSize * kernelSize * lastVisualInfos.length * 16 + j * 16);
+
+            const fromCol = Vector4.FromArray(fromWholeColors, kernelIndex * 4);
+            perCubeFinalColors.set([fromCol.x, fromCol.y, fromCol.z, fromCol.w], i * kernelSize * kernelSize * lastVisualInfos.length * 4 + j * 4);
+        }
+    }
+
+    baseCube.material = new StandardMaterial(`baseCubeMaterial_${numInstances}`, sceneInformation.scene);
+    baseCube.thinInstanceSetBuffer("matrix", perCubeFinalWholeMatrix, 16);
+    baseCube.thinInstanceSetBuffer("color", perCubeFinalColors, 4);
+
+    numInstances++;
+
+    const updateMatrices = () => {
         if ((sceneInformation.animationToken ?? 0) !== currentToken) return;
 
         const now = performance.now();
-        const currentMatrixData = new Float32Array(fromWholeMatrix.length);
-        const currentColorsData = new Float32Array(fromWholeColors.length);
+        const currentMatrixData = new Float32Array(perCubeFinalWholeMatrix.length);
+        const currentColorsData = new Float32Array(perCubeFinalColors.length);
 
         let allFinished = true;
 
-        for (let i = 0; i < data.length; i++) {
+        for (let i = 0; i < totalFinalCubes; i++) {
             const startTime = globalStartTime + timeOffset * i;
             const localElapsedTime = now - startTime;
             const t = Math.min(Math.max(localElapsedTime / timeTravel, 0), 1);
 
-            const kernelIndexesBefore = getKernelIndexes(i, inWidth, numInputs, visual.width, kernelSize, stride);
-            // first 25 values
-            const kernelIndexes = kernelIndexesBefore.slice(0, 4);
             if (t < 1) allFinished = false;
 
-            for (let j = 0; j < kernelIndexes.length; j++)
-            {
-                const kernelIndex = kernelIndexes[j];
+            for (let j = 0; j < kernelArea; j++) {
+                const offset = i * kernelArea + j;
 
-                const fromMat = Matrix.FromArray(fromWholeMatrix, kernelIndex * 16);
+                const fromMat = Matrix.FromArray(perCubeFinalWholeMatrix, offset * 16);
                 const toMat = Matrix.FromArray(finalMatrixData, i * 16);
                 const interpolated = Matrix.Lerp(fromMat, toMat, t);
-                interpolated.copyToArray(currentMatrixData, kernelIndex * 16);
+                interpolated.copyToArray(currentMatrixData, offset * 16);
 
-                const fromCol = Vector4.FromArray(fromWholeColors, kernelIndex * 4);
+                const fromCol = Vector4.FromArray(perCubeFinalColors, offset * 4);
                 const toCol = Vector4.FromArray(finalColorsData, i * 4);
-                const lerpedVector = lerpVector4(fromCol, toCol, t) as Vector4;
-                lerpedVector.toArray(currentColorsData, kernelIndex * 4);
+                const interpolatedColor = lerpVector4(fromCol, toCol, t) as Vector4;
+                interpolatedColor.toArray(currentColorsData, offset * 4);
             }
         }
 
@@ -432,7 +437,6 @@ export const addVisualFromConvolution = async function(sceneInformation: SceneIn
     };
 
     requestAnimationFrame(updateMatrices);
-    */
 
     return {matrix: finalMatrixData, color: finalColorsData};
 }
@@ -532,8 +536,19 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
     const poolLayer1Infos: AddedVisualInfo[] = new Array(6);
     for(let i = 0; i < 6; i++)
     {
-        poolLayer1Infos[i] = await safeAwait(addVisualFromSubsampling(sceneInformation, visuals[7 + i], new Vector3(-10 + 3.7 * i, 0, -15), convLayer1Infos[i].matrix, convLayer1Infos[i].color, 100, 1, 0.05));
-        await safeAwait(wait(500))
+        let speed = 100;
+        let timeOffset = 1;
+        let waitTime = 500;
+
+        if (i === 0)
+        {
+            speed = 200;
+            timeOffset = 10;
+            waitTime = 2000;
+        }
+
+        poolLayer1Infos[i] = await safeAwait(addVisualFromSubsampling(sceneInformation, visuals[7 + i], new Vector3(-10 + 3.7 * i, 0, -15), convLayer1Infos[i].matrix, convLayer1Infos[i].color, speed, timeOffset, 0.05));
+        await safeAwait(wait(waitTime))
     }
     await safeAwait(wait(500));
 
@@ -542,10 +557,21 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
 
     //[4] CONV LAYER 2
     const convLayer2Infos: AddedVisualInfo[] = new Array(16);
-    for(let i = 0; i < 1; i++)
+    for(let i = 0; i < 16; i++)
     {
-        convLayer2Infos[i] = await safeAwait(addVisualFromConvolution(sceneInformation, visuals[13 + i], new Vector3(0, 0, -23 - i * 0.5), poolLayer1Infos, 10000, 2000, 0.05, 5, 1));
-        await safeAwait(wait(1000))
+        let speed = 100;
+        let timeOffset = 1;
+        let waitTime = 400;
+
+        if (i === 0)
+        {
+            speed = 400;
+            timeOffset = 60;
+            waitTime = 9000;
+        }
+        convLayer2Infos[i] = await safeAwait(addVisualFromConvolution(sceneInformation, visuals[13 + i], new Vector3(0, 0, -23 - i * 0.5), poolLayer1Infos, speed, timeOffset, 0.05, 5, 1));
+        
+        await safeAwait(wait(waitTime))
     }
 };
 
