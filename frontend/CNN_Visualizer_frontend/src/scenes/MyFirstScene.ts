@@ -309,7 +309,8 @@ export const addVisualFromSubsampling = async function(sceneInformation: SceneIn
 }
 
 //================================//
-export const addVisualFromConvolution = async function(sceneInformation: SceneInformation, visual: Visual, centerPosition: Vector3, lastVisualInfos: AddedVisualInfo[], timeTravel: number, timeOffset: number, space: number = 0.1, kernelSize: number = 5, stride: number = 1): Promise<AddedVisualInfo | undefined>
+// To optimize here the time offset is also the travel time for the animation
+export const addVisualFromConvolution = async function(sceneInformation: SceneInformation, visual: Visual, centerPosition: Vector3, lastVisualInfos: AddedVisualInfo[], timeTravel: number, space: number = 0.1, kernelSize: number = 5, stride: number = 1): Promise<AddedVisualInfo | undefined>
 {
     if (sceneInformation === null || lastVisualInfos === undefined) return;
 
@@ -366,31 +367,9 @@ export const addVisualFromConvolution = async function(sceneInformation: SceneIn
     const currentToken = sceneInformation.animationToken ?? 0;
     const globalStartTime = performance.now();
 
-    const kernelArea = kernelSize * kernelSize * numInputs;
-    const totalFinalCubes = width * height;
-
-    const perCubeFinalWholeMatrix = new Float32Array(totalFinalCubes * kernelSize * kernelSize * lastVisualInfos.length *16);
-    const perCubeFinalColors = new Float32Array(totalFinalCubes * kernelSize * kernelSize * lastVisualInfos.length *16);
-
-    for (let i = 0; i < totalFinalCubes; i++)
-    {
-        const kernelIndexes = getKernelIndexes(i, inWidth, numInputs, width, kernelSize, stride);
-        // Push the positions of those indexes into the perCubeFinalWholeMatrix and perCubeFinalColors
-        for (let j = 0; j < kernelIndexes.length; j++)
-        {
-            const kernelIndex = kernelIndexes[j];
-
-            const fromMat = Matrix.FromArray(fromWholeMatrix, kernelIndex * 16);
-            fromMat.copyToArray(perCubeFinalWholeMatrix, i * kernelSize * kernelSize * lastVisualInfos.length * 16 + j * 16);
-
-            const fromCol = Vector4.FromArray(fromWholeColors, kernelIndex * 4);
-            perCubeFinalColors.set([fromCol.x, fromCol.y, fromCol.z, fromCol.w], i * kernelSize * kernelSize * lastVisualInfos.length * 4 + j * 4);
-        }
-    }
-
     baseCube.material = new StandardMaterial(`baseCubeMaterial_${numInstances}`, sceneInformation.scene);
-    baseCube.thinInstanceSetBuffer("matrix", perCubeFinalWholeMatrix, 16);
-    baseCube.thinInstanceSetBuffer("color", perCubeFinalColors, 4);
+    baseCube.thinInstanceSetBuffer("matrix", fromWholeMatrix, 16);
+    baseCube.thinInstanceSetBuffer("color", fromWholeColors, 4);
 
     numInstances++;
 
@@ -398,30 +377,35 @@ export const addVisualFromConvolution = async function(sceneInformation: SceneIn
         if ((sceneInformation.animationToken ?? 0) !== currentToken) return;
 
         const now = performance.now();
-        const currentMatrixData = new Float32Array(perCubeFinalWholeMatrix.length);
-        const currentColorsData = new Float32Array(perCubeFinalColors.length);
+        const currentMatrixData = new Float32Array(fromWholeMatrix.length);
+        const currentColorsData = new Float32Array(fromWholeColors.length);
 
         let allFinished = true;
 
-        for (let i = 0; i < totalFinalCubes; i++) {
-            const startTime = globalStartTime + timeOffset * i;
+        for (let i = 0; i < data.length; i++) {
+            const startTime = globalStartTime + timeTravel * i;
             const localElapsedTime = now - startTime;
+
             const t = Math.min(Math.max(localElapsedTime / timeTravel, 0), 1);
+
+            const kernelIndexes = getKernelIndexes(i, inWidth, numInputs, width, kernelSize, stride);
 
             if (t < 1) allFinished = false;
 
-            for (let j = 0; j < kernelArea; j++) {
-                const offset = i * kernelArea + j;
+            if (now  < startTime) continue; // Skip if the animation is not started yet
 
-                const fromMat = Matrix.FromArray(perCubeFinalWholeMatrix, offset * 16);
+            for (let j = 0; j < kernelIndexes.length; j++) {
+                const kernelIndex = kernelIndexes[j];
+
+                const fromMat = Matrix.FromArray(fromWholeMatrix, kernelIndex * 16);
                 const toMat = Matrix.FromArray(finalMatrixData, i * 16);
                 const interpolated = Matrix.Lerp(fromMat, toMat, t);
-                interpolated.copyToArray(currentMatrixData, offset * 16);
+                interpolated.copyToArray(currentMatrixData, kernelIndex * 16);
 
-                const fromCol = Vector4.FromArray(perCubeFinalColors, offset * 4);
+                const fromCol = Vector4.FromArray(fromWholeColors, kernelIndex * 4);
                 const toCol = Vector4.FromArray(finalColorsData, i * 4);
                 const interpolatedColor = lerpVector4(fromCol, toCol, t) as Vector4;
-                interpolatedColor.toArray(currentColorsData, offset * 4);
+                interpolatedColor.toArray(currentColorsData, kernelIndex * 4);
             }
         }
 
@@ -529,7 +513,7 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
     }
     await safeAwait(wait(500));
 
-    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-10, 5, -30), 1000));
+    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-20, 5, -40), 1000));
     await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -15), 1000));
 
     //[3] pooling layer 1
@@ -552,25 +536,48 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
     }
     await safeAwait(wait(500));
 
-    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-10, 5, -45), 1000));
-    //await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -23), 1000));
+    
 
     //[4] CONV LAYER 2
     const convLayer2Infos: AddedVisualInfo[] = new Array(16);
     for(let i = 0; i < 16; i++)
     {
-        let speed = 100;
-        let timeOffset = 1;
-        let waitTime = 400;
+        let speed = (i === 0) ? 100 : 6;
+
+        let waitTime = speed * visuals[13 + i].data.length;
+
+        if (i === 0) waitTime-= 2000;
+        convLayer2Infos[i] = await safeAwait(addVisualFromConvolution(sceneInformation, visuals[13 + i], new Vector3(0, 0, -23 - i * 0.5), poolLayer1Infos, speed, 0.05, 5, 1));
+        
+        await safeAwait(wait(waitTime))
 
         if (i === 0)
         {
-            speed = 400;
-            timeOffset = 60;
-            waitTime = 9000;
+            await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-10, 5, -45), 1000));
+            await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -25), 1000));
         }
-        convLayer2Infos[i] = await safeAwait(addVisualFromConvolution(sceneInformation, visuals[13 + i], new Vector3(0, 0, -23 - i * 0.5), poolLayer1Infos, speed, timeOffset, 0.05, 5, 1));
-        
+    }
+    await safeAwait(wait(500));
+
+    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-10, 5, -55), 1000));
+    await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -42), 1000));
+
+    //[5] POOLING LAYER 2
+    const poolLayer2Infos: AddedVisualInfo[] = new Array(16);
+    for(let i = 0; i < 16; i++)
+    {
+        let speed = 100;
+        let timeOffset = 1;
+        let waitTime = 100;
+
+        if (i === 0)
+        {
+            speed = 200;
+            timeOffset = 10;
+            waitTime = 700;
+        }
+
+        poolLayer2Infos[i] = await safeAwait(addVisualFromSubsampling(sceneInformation, visuals[29 + i], new Vector3(0, 0, -35 - i * 0.5), convLayer2Infos[i].matrix, convLayer2Infos[i].color, speed, timeOffset, 0.05));
         await safeAwait(wait(waitTime))
     }
 };
@@ -609,7 +616,7 @@ export const resetScene = async function(sceneInformation: SceneInformation): Pr
         sceneInformation.inRenderLoop?.();
     });
 
-    sceneInformation.scene?.debugLayer.show();
+    //sceneInformation.scene?.debugLayer.show();
 }
 
 //================================//
