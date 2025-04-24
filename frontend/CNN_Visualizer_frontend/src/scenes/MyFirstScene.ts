@@ -426,7 +426,7 @@ export const addVisualFromConvolution = async function(sceneInformation: SceneIn
 }
 
 //================================//
-export const addVisualFromFullConnectedLayer = async function(sceneInformation: SceneInformation, visual: Visual, centerPosition: Vector3, lastVisualInfos: AddedVisualInfo[], timeTravel: number, space: number = 0.1): Promise<AddedVisualInfo | undefined>
+export const addVisualFromFullConnectedLayer = async function(sceneInformation: SceneInformation, visual: Visual, centerPosition: Vector3, lastVisualInfos: AddedVisualInfo[], timeTravel: number, space: number = 0.1, rows: number = 2): Promise<AddedVisualInfo | undefined>
 {
     if (sceneInformation === null || lastVisualInfos === undefined) return;
 
@@ -447,9 +447,13 @@ export const addVisualFromFullConnectedLayer = async function(sceneInformation: 
     const length = data.length;
     const cubeSize = 0.2;
 
-    const startx = length % 2 === 0 ? -cubeSize / 2 - (length / 2) * (cubeSize + space) : -cubeSize / 2 - ((length - 1) / 2) * (cubeSize + space);
-    const starty = 0.0; // height is always 0.0
+    if (rows <= 0) rows = 1;
 
+    const cols = Math.ceil(length / rows);
+    const startx = cols % 2 === 0 ? -space / 2 - (cols / 2) * (cubeSize + space) : -cubeSize / 2 - ((cols - 1) / 2) * (cubeSize + space);
+    const starty = rows % 2 === 0 ? space / 2 + (rows / 2) * (cubeSize + space) : cubeSize / 2 + ((rows - 1) / 2) * (cubeSize + space);
+
+    const width = Math.ceil(length / rows);
     const startPosition: Vector3 = new Vector3(startx + centerPosition.x, starty + centerPosition.y, centerPosition.z);
     const baseCube = MeshBuilder.CreateBox(`baseCube_${numInstances}`, { size: cubeSize }, sceneInformation.scene);
 
@@ -459,8 +463,8 @@ export const addVisualFromFullConnectedLayer = async function(sceneInformation: 
     for (let i = 0; i < length; i++)
     {
         const pos: Vector3 = startPosition.add(new Vector3(
-            (i % length) * (cubeSize + space),
-            -Math.floor(i / length) * (cubeSize + space),
+            (i % width) * (cubeSize + space),
+            -Math.floor(i / width) * (cubeSize + space),
             0.0
         ));
 
@@ -699,14 +703,12 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
 
     await safeAwait(wait(500));
 
-    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-20, 5, -70), 1000));
-    await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -60), 1000));
-
-    await safeAwait(wait(2000));
+    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-15, 5, -85), 1000));
+    await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -55), 1000));
 
     //[6] FULL CONNECTED LAYER 1
     const fullConnectedLayer1Infos: AddedVisualInfo = {matrix: new Float32Array(0), color: new Float32Array(0)};
-    await safeAwait(addVisualFromFullConnectedLayer(sceneInformation, visuals[45], new Vector3(0, 0, -60), poolLayer2Infos, 1000, 0.05));
+    await safeAwait(addVisualFromFullConnectedLayer(sceneInformation, visuals[45], new Vector3(0, 0, -55), poolLayer2Infos, 10, 0.05, 4));
 };
 
 //================================//
