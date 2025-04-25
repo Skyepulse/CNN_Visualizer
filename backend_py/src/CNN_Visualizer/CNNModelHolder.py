@@ -152,38 +152,46 @@ class LeNet(nn.Module):
         x_flat = x4.view(x4.shape[0], -1)
         if save_visuals:
             flat_vis = x_flat[0].detach().cpu().numpy().reshape(1, -1)
-            visuals.append(self.prepare_visuals("Flattened Feature Map (400)", flat_vis))
+            visuals.append(self.prepare_visuals("Flattened Feature Map (400)", flat_vis, 100, 4))
 
         x5 = F.relu(self.fc1(x_flat))
         if save_visuals:
             fc1_vis = x5[0].detach().cpu().numpy().reshape(10, 12)
-            visuals.append(self.prepare_visuals("FC1 Output (120)", fc1_vis))
+            visuals.append(self.prepare_visuals("FC1 Output (120)", fc1_vis, 60, 2))
 
         x6 = F.relu(self.fc2(x5))
         if save_visuals:
             fc2_vis = x6[0].detach().cpu().numpy().reshape(7, 12)
-            visuals.append(self.prepare_visuals("FC2 Output (84)", fc2_vis))
+            visuals.append(self.prepare_visuals("FC2 Output (84)", fc2_vis, 42, 2))
 
         x7 = self.fc3(x6)
         out = F.log_softmax(x7, dim=1)
         if save_visuals:
             fc3_vis = out[0].detach().cpu().numpy().reshape(1, 10)
-            visuals.append(self.prepare_visuals("FC3 Output (10 logits)", fc3_vis))
+            visuals.append(self.prepare_visuals("FC3 Output (10 logits)", fc3_vis, 10, 1))
 
         self.visuals = visuals
 
         return out
 
-    def prepare_visuals(self, name, array):
+    def prepare_visuals(self, name, array, width=None, height=None):
         # Normalize to [0, 255] uint8
         arr = array - np.min(array)
         if np.max(arr) != 0:
             arr = arr / np.max(arr)
         arr = (arr * 255).astype(np.uint8)
 
+        if width is None or height is None:
+            # If width and height are not provided, use the shape of the array
+            h, w = arr.shape
+
+        else:
+            h = height
+            w = width
+
         return {
             "title": name,
-            "width": arr.shape[1],
-            "height": arr.shape[0],
+            "width": w,
+            "height": h,
             "data": arr.flatten().tolist(),
         }

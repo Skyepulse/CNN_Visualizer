@@ -20,6 +20,16 @@ import "@babylonjs/inspector";
 //import cubeFragmentShader from '@src/Shaders/cubeFragment.glsl?raw';
 
 //================================//
+export type CameraMovements = {
+    goLeft: boolean,
+    goRight: boolean,
+    goFront: boolean,
+    goBack: boolean,
+}
+
+const CAMERA_MOVEMENTS = { goLeft: false, goRight: false, goFront: false, goBack: false};
+
+//================================//
 export type SceneInformation = {
     scene?: Scene,
     camera?: FreeCamera,
@@ -27,17 +37,23 @@ export type SceneInformation = {
     engine: Engine,
     inRenderLoop?: () => void,
     animationToken?: number,
+    cubeInstances?: Mesh[],
+    wholeRenderCube?: Mesh,
+    wholeMatrix?: Float32Array,
+    wholeColors?: Float32Array,
 };
 
 //================================//
 type AddedVisualInfo = 
 {
     matrix: Float32Array,
-    color: Float32Array
+    color: Float32Array,
+    cube: Mesh
 }
 
 //
 let numInstances = 0;
+const cameraSpeed = 0.1;
 
 //================================//
 export const createScene = async function (canvas: HTMLCanvasElement, fpsDisplay?: HTMLElement): Promise<SceneInformation> {
@@ -109,13 +125,26 @@ export const addVisual = async function(sceneInformation: SceneInformation, visu
     baseCube.material = new StandardMaterial(`baseCubeMaterial_${numInstances}`, sceneInformation.scene);
     numInstances++;
 
-    return {matrix: matrixData, color: colors};
+    return {matrix: matrixData, color: colors, cube: baseCube};
 };
 
 //================================//
-export const addVisualFromInput = async function(sceneInformation: SceneInformation, visual: Visual, centerPosition: Vector3, fromMatrix: Float32Array, fromColors: Float32Array, timeTravel: number, timeOffset: number, space: number = 0.1): Promise<AddedVisualInfo | undefined>
+export const addVisualFromInput = async function(sceneInformation: SceneInformation, visual: Visual, centerPosition: Vector3, lastVisualInfos: AddedVisualInfo[], timeTravel: number, timeOffset: number, space: number = 0.1): Promise<AddedVisualInfo | undefined>
 {
-    if (sceneInformation === null || fromMatrix === undefined) return;
+    if (sceneInformation === null || lastVisualInfos === undefined) return;
+
+    const numInputs = lastVisualInfos.length;
+    
+    // Flatten all input matrices into one huge array
+    const fromWholeMatrix = new Float32Array(numInputs * lastVisualInfos[0].matrix.length);
+    const fromWholeColors = new Float32Array(numInputs * lastVisualInfos[0].color.length);
+
+    for (let i = 0; i < numInputs; i++) {
+        const fromMatrix = lastVisualInfos[i].matrix;
+        const fromColors = lastVisualInfos[i].color;
+        fromWholeMatrix.set(fromMatrix, i * fromMatrix.length);
+        fromWholeColors.set(fromColors, i * fromColors.length);
+    }
 
     const height = visual.height;
     const width = visual.width;
@@ -157,8 +186,8 @@ export const addVisualFromInput = async function(sceneInformation: SceneInformat
     }
 
     baseCube.material = new StandardMaterial(`baseCube_${numInstances}`, sceneInformation.scene);
-    baseCube.thinInstanceSetBuffer("matrix", fromMatrix, 16);
-    baseCube.thinInstanceSetBuffer("color", fromColors, 4);
+    baseCube.thinInstanceSetBuffer("matrix", fromWholeMatrix, 16);
+    baseCube.thinInstanceSetBuffer("color", fromWholeColors, 4);
 
     numInstances++;
 
@@ -171,8 +200,8 @@ export const addVisualFromInput = async function(sceneInformation: SceneInformat
         if ((sceneInformation.animationToken ?? 0) !== currentToken) return;
 
         const now = performance.now();
-        const currentMatrixData = new Float32Array(fromMatrix.length);
-        const currentColorsData = new Float32Array(fromColors.length);
+        const currentMatrixData = new Float32Array(fromWholeMatrix.length);
+        const currentColorsData = new Float32Array(fromWholeColors.length);
 
         let allFinished = true;
 
@@ -183,12 +212,12 @@ export const addVisualFromInput = async function(sceneInformation: SceneInformat
 
             if (t < 1) allFinished = false;
 
-            const fromMat = Matrix.FromArray(fromMatrix, i * 16);
+            const fromMat = Matrix.FromArray(fromWholeMatrix, i * 16);
             const toMat = Matrix.FromArray(finalMatrixData, i * 16);
             const interpolated = Matrix.Lerp(fromMat, toMat, t);
             interpolated.copyToArray(currentMatrixData, i * 16);
 
-            const fromCol = Vector4.FromArray(fromColors, i * 4);
+            const fromCol = Vector4.FromArray(fromWholeColors, i * 4);
             const toCol = Vector4.FromArray(finalColorsData, i * 4);
             const lerpedVector = lerpVector4(fromCol, toCol, t) as Vector4;
             lerpedVector.toArray(currentColorsData, i * 4);
@@ -204,7 +233,7 @@ export const addVisualFromInput = async function(sceneInformation: SceneInformat
 
     requestAnimationFrame(updateMatrices);
 
-    return {matrix: finalMatrixData, color: finalColorsData};
+    return {matrix: finalMatrixData, color: finalColorsData, cube: baseCube};
 }
 
 //================================//
@@ -305,7 +334,7 @@ export const addVisualFromSubsampling = async function(sceneInformation: SceneIn
 
     requestAnimationFrame(updateMatrices);
 
-    return {matrix: finalMatrixData, color: finalColorsData};
+    return {matrix: finalMatrixData, color: finalColorsData, cube: baseCube};
 }
 
 //================================//
@@ -422,7 +451,7 @@ export const addVisualFromConvolution = async function(sceneInformation: SceneIn
 
     requestAnimationFrame(updateMatrices);
 
-    return {matrix: finalMatrixData, color: finalColorsData};
+    return {matrix: finalMatrixData, color: finalColorsData, cube: baseCube};
 }
 
 //================================//
@@ -451,7 +480,7 @@ export const addVisualFromFullConnectedLayer = async function(sceneInformation: 
 
     const cols = Math.ceil(length / rows);
     const startx = cols % 2 === 0 ? -space / 2 - (cols / 2) * (cubeSize + space) : -cubeSize / 2 - ((cols - 1) / 2) * (cubeSize + space);
-    const starty = rows % 2 === 0 ? space / 2 + (rows / 2) * (cubeSize + space) : cubeSize / 2 + ((rows - 1) / 2) * (cubeSize + space);
+    const starty = rows === 1 ? 0 : (rows % 2 === 0 ? space / 2 + (rows / 2) * (cubeSize + space) : cubeSize / 2 + ((rows - 1) / 2) * (cubeSize + space));
 
     const width = Math.ceil(length / rows);
     const startPosition: Vector3 = new Vector3(startx + centerPosition.x, starty + centerPosition.y, centerPosition.z);
@@ -542,7 +571,7 @@ export const addVisualFromFullConnectedLayer = async function(sceneInformation: 
 
     requestAnimationFrame(updateMatrices);
 
-    return {matrix: finalMatrixData, color: finalColorsData};
+    return {matrix: finalMatrixData, color: finalColorsData, cube: baseCube};
 }
 
 //================================//
@@ -600,6 +629,12 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
     if (!sceneInformation.light) return;
     if (!sceneInformation.inRenderLoop) return;
 
+    console.log(visuals.length);
+    for(let i = 0; i < visuals.length; i++)
+    {
+        console.log(visuals[i].data.length)
+    }
+
     // reset scene
     await resetScene(sceneInformation);
     
@@ -615,9 +650,14 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
 
     // [1] INPUT IMAGE
     const inputImageInfo = await safeAwait(addVisual(sceneInformation, visuals[0], new Vector3(0, 0, 0), 0.2)) as AddedVisualInfo;
+    sceneInformation.cubeInstances?.push(inputImageInfo.cube);
+
     setCameraPosition(sceneInformation, new Vector3(-10, 5, -14));
     setCameraLookAt(sceneInformation, new Vector3(0, 0, 0));
+
     await safeAwait(wait(100));
+    await assignNewRendersToWholeCube(sceneInformation, inputImageInfo.cube, inputImageInfo.matrix, inputImageInfo.color);
+
     
     await safeAwait(rotateAroundCircle(sceneInformation, sceneInformation.camera.target.clone(), sceneInformation.camera.position.clone(), Math.PI * 2, 2000));
     await safeAwait(wait(500));
@@ -628,10 +668,15 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
     const convLayer1Infos: AddedVisualInfo[] = new Array(6);
     for(let i = 0; i < 6; i++)
     {
-        convLayer1Infos[i] = await safeAwait(addVisualFromInput(sceneInformation, visuals[1 + i], new Vector3(0, 0, -7 - i * 0.5), inputImageInfo.matrix, inputImageInfo.color, 100, 1, 0.05));
+        convLayer1Infos[i] = await safeAwait(addVisualFromInput(sceneInformation, visuals[1 + i], new Vector3(0, 0, -7 - i * 0.5), [inputImageInfo], 100, 1, 0.05));
         await safeAwait(wait(1000))
     }
+
     await safeAwait(wait(500));
+    for (const visualInfo of convLayer1Infos) {
+        sceneInformation.cubeInstances?.push(visualInfo.cube);
+        await assignNewRendersToWholeCube(sceneInformation, visualInfo.cube, visualInfo.matrix, visualInfo.color);
+    }
 
     await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-20, 5, -40), 1000));
     await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -15), 1000));
@@ -654,8 +699,12 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
         poolLayer1Infos[i] = await safeAwait(addVisualFromSubsampling(sceneInformation, visuals[7 + i], new Vector3(-10 + 3.7 * i, 0, -15), convLayer1Infos[i].matrix, convLayer1Infos[i].color, speed, timeOffset, 0.05));
         await safeAwait(wait(waitTime))
     }
+    
     await safeAwait(wait(500));
-
+    for (const visualInfo of poolLayer1Infos) {
+        sceneInformation.cubeInstances?.push(visualInfo.cube);
+        await assignNewRendersToWholeCube(sceneInformation, visualInfo.cube, visualInfo.matrix, visualInfo.color);
+    }
     
 
     //[4] CONV LAYER 2
@@ -678,6 +727,10 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
         }
     }
     await safeAwait(wait(500));
+    for (const visualInfo of convLayer2Infos) {
+        sceneInformation.cubeInstances?.push(visualInfo.cube);
+        await assignNewRendersToWholeCube(sceneInformation, visualInfo.cube, visualInfo.matrix, visualInfo.color);
+    }
 
     await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-10, 5, -55), 1000));
     await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -42), 1000));
@@ -700,15 +753,51 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
         poolLayer2Infos[i] = await safeAwait(addVisualFromSubsampling(sceneInformation, visuals[29 + i], new Vector3(0, 0, -35 - i * 0.5), convLayer2Infos[i].matrix, convLayer2Infos[i].color, speed, timeOffset, 0.05));
         await safeAwait(wait(waitTime))
     }
+    await safeAwait(wait(500));
+    for (const visualInfo of poolLayer2Infos) {
+        sceneInformation.cubeInstances?.push(visualInfo.cube);
+        await assignNewRendersToWholeCube(sceneInformation, visualInfo.cube, visualInfo.matrix, visualInfo.color);
+    }
+
+    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-15, 5, -73), 1000));
+    await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -42), 1000));
+
+    //[6] FULL CONNECTED LAYER 1
+    const fullConnectedLayer1Infos = await safeAwait(addVisualFromInput(sceneInformation, visuals[45], new Vector3(0, 0, -46), poolLayer2Infos, 1000, 0, 0.05));
+    await safeAwait(wait(1000));
+
+    sceneInformation.cubeInstances?.push(fullConnectedLayer1Infos.cube);
+    await assignNewRendersToWholeCube(sceneInformation, fullConnectedLayer1Infos.cube, fullConnectedLayer1Infos.matrix, fullConnectedLayer1Infos.color);
 
     await safeAwait(wait(500));
 
-    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-15, 5, -85), 1000));
-    await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -55), 1000));
+    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-15, 15, -73), 1000));
+    await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -44), 1000));
 
-    //[6] FULL CONNECTED LAYER 1
-    const fullConnectedLayer1Infos: AddedVisualInfo = {matrix: new Float32Array(0), color: new Float32Array(0)};
-    await safeAwait(addVisualFromFullConnectedLayer(sceneInformation, visuals[45], new Vector3(0, 0, -55), poolLayer2Infos, 10, 0.05, 4));
+    const fullConnectedLayer2Infos = await safeAwait(addVisualFromFullConnectedLayer(sceneInformation, visuals[46], new Vector3(0, 0, -50), [fullConnectedLayer1Infos], 15, 0.05, 2));
+    await safeAwait(wait(15*visuals[46].data.length));
+
+    sceneInformation.cubeInstances?.push(fullConnectedLayer2Infos.cube);
+    await assignNewRendersToWholeCube(sceneInformation, fullConnectedLayer2Infos.cube, fullConnectedLayer2Infos.matrix, fullConnectedLayer2Infos.color);
+
+    await safeAwait(wait(500));
+
+    const fullConnectedLayer3Infos = await safeAwait(addVisualFromFullConnectedLayer(sceneInformation, visuals[47], new Vector3(0, 0, -54), [fullConnectedLayer2Infos], 25, 0.05, 2));
+    await safeAwait(wait(25*visuals[47].data.length));
+
+    sceneInformation.cubeInstances?.push(fullConnectedLayer3Infos.cube);
+    await assignNewRendersToWholeCube(sceneInformation, fullConnectedLayer3Infos.cube, fullConnectedLayer3Infos.matrix, fullConnectedLayer3Infos.color);
+
+    await safeAwait(wait(500));
+
+    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(0, 10, -73), 1000));
+    await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -56), 1000));
+
+    const final10 = await safeAwait(addVisualFromFullConnectedLayer(sceneInformation, visuals[48], new Vector3(0,0,-58), [fullConnectedLayer3Infos], 750, 1.0, 1));
+    await safeAwait(wait(7500));
+
+    sceneInformation.cubeInstances?.push(final10.cube);
+    await assignNewRendersToWholeCube(sceneInformation, final10.cube, final10.matrix, final10.color);
 };
 
 //================================//
@@ -717,6 +806,17 @@ export const resetScene = async function(sceneInformation: SceneInformation): Pr
     if (sceneInformation === null) return;
     if (!sceneInformation.engine || !sceneInformation.inRenderLoop) return;
 
+    if(sceneInformation.cubeInstances)
+    {
+        sceneInformation.cubeInstances.forEach((cube: Mesh) => {
+            if (cube) cube.dispose();
+        });
+        sceneInformation.cubeInstances = [];
+    }
+
+    if(sceneInformation.wholeColors) sceneInformation.wholeColors = new Float32Array(0);
+    if(sceneInformation.wholeMatrix) sceneInformation.wholeMatrix = new Float32Array(0);
+    if(sceneInformation.wholeRenderCube) sceneInformation.wholeRenderCube.dispose();
     if(sceneInformation.scene) sceneInformation.scene.dispose();
     if(sceneInformation.camera) sceneInformation.camera.dispose();
     if(sceneInformation.light) sceneInformation.light.dispose();
@@ -743,8 +843,14 @@ export const resetScene = async function(sceneInformation: SceneInformation): Pr
     {
         sceneInformation.scene?.render();
         sceneInformation.inRenderLoop?.();
+        processCameraMovements(sceneInformation);
     });
 
+    sceneInformation.wholeRenderCube = MeshBuilder.CreateBox("wholeRenderCube", { size: 0.2 }, sceneInformation.scene);
+    sceneInformation.wholeRenderCube.position = new Vector3(0, 0, 0);
+    sceneInformation.wholeRenderCube.material = new StandardMaterial("wholeRenderCubeMaterial", sceneInformation.scene);
+    sceneInformation.wholeRenderCube.isVisible = false;
+    
     //sceneInformation.scene?.debugLayer.show();
 }
 
@@ -893,3 +999,82 @@ function assert(condition: any, msg?: string): asserts condition {
         throw new Error(msg || "Assertion failed");
     }
 }
+
+//================================//
+const assignNewRendersToWholeCube = async function(sceneInformation: SceneInformation, cube: Mesh, matrix: Float32Array, color: Float32Array): Promise<void>
+{
+    if (sceneInformation === null || sceneInformation.wholeRenderCube === undefined) return;
+
+    if (sceneInformation.wholeColors === undefined) sceneInformation.wholeColors = new Float32Array(0);
+    if (sceneInformation.wholeMatrix === undefined) sceneInformation.wholeMatrix = new Float32Array(0);
+
+    //We add the positions in matrix and colors to wholeMatrix and wholeColors
+    const newMatrix = new Float32Array(sceneInformation.wholeMatrix.length + matrix.length);
+    const newColors = new Float32Array(sceneInformation.wholeColors.length + color.length);
+
+    newMatrix.set(sceneInformation.wholeMatrix, 0);
+    newMatrix.set(matrix, sceneInformation.wholeMatrix.length);
+    sceneInformation.wholeMatrix = newMatrix;
+
+    newColors.set(sceneInformation.wholeColors, 0);
+    newColors.set(color, sceneInformation.wholeColors.length);
+    sceneInformation.wholeColors = newColors;
+
+    //We set the new buffer to the wholeRenderCube
+    sceneInformation.wholeRenderCube.thinInstanceSetBuffer("matrix", sceneInformation.wholeMatrix, 16);
+    sceneInformation.wholeRenderCube.thinInstanceSetBuffer("color", sceneInformation.wholeColors, 4);
+
+    cube.isVisible = false; // Hide the original cube
+    sceneInformation.wholeRenderCube.isVisible = true; // Show the whole render cube
+}
+
+//================================//
+export function goLeft(value: boolean): void {
+    CAMERA_MOVEMENTS.goLeft = value;
+}
+
+//================================//
+export function goRight(value: boolean): void {
+    CAMERA_MOVEMENTS.goRight = value;
+}
+
+//================================//
+export function goUp(value: boolean): void {
+    CAMERA_MOVEMENTS.goFront = value;
+}
+
+//================================//
+export function goDown(value: boolean): void {
+    CAMERA_MOVEMENTS.goBack = value;
+}
+
+//================================//
+function processCameraMovements(sceneInformation: SceneInformation): void {
+    if (sceneInformation === null || !sceneInformation.camera) return;
+
+    const camera = sceneInformation.camera;
+    const speed = 0.1; // Adjust the speed as needed
+
+    // Get the camera's forward vector (normalized)
+    const forward = camera.getTarget().subtract(camera.position).normalize();
+
+    // Calculate right vector (cross product of forward and up)
+    const right = Vector3.Cross(forward, Vector3.Up()).normalize();
+
+    if (CAMERA_MOVEMENTS.goLeft) {
+        camera.position.addInPlace(right.scale(speed));
+        camera.target.addInPlace(right.scale(speed));
+    }
+    if (CAMERA_MOVEMENTS.goRight) {
+        camera.position.subtractInPlace(right.scale(speed));
+        camera.target.subtractInPlace(right.scale(speed));
+    }
+    if (CAMERA_MOVEMENTS.goFront) {
+        camera.position.addInPlace(forward.scale(speed));
+        camera.target.addInPlace(forward.scale(speed));
+    }
+    if (CAMERA_MOVEMENTS.goBack) {
+        camera.position.subtractInPlace(forward.scale(speed));
+        camera.target.subtractInPlace(forward.scale(speed));
+    }
+}   
