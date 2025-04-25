@@ -53,7 +53,6 @@ type AddedVisualInfo =
 
 //
 let numInstances = 0;
-const cameraSpeed = 0.1;
 
 //================================//
 export const createScene = async function (canvas: HTMLCanvasElement, fpsDisplay?: HTMLElement): Promise<SceneInformation> {
