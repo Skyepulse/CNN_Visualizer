@@ -1,5 +1,5 @@
 <template>
-    <div class="flex flex-col items-center space-y-4 p-4">
+    <div class="flex flex-col items-start space-y-4 p-4">
         <div class="flex items-center space-x-4">
             <canvas
             ref="canvas"
@@ -12,45 +12,46 @@
             @mouseleave="stopDrawing"
             >
             </canvas>
-            <div
-            class="relative border-2 border-gray-300 rounded w-[400px] h-[400px] flex items-center justify-center"
-            >
-            <img
-                v-if="hasImage"
-                :src="outputImageSource"
-                alt="Output"
-                class="w-full h-full object-contain"
-            />
-            <p v-else class=" text-shadow-zinc-50 font-bold">
-                Your output image will be shown here
-            </p>
-            </div>
             <BabylonCanvas 
               v-if="fpsDisplay"
               :height="400" 
-              :width="400" 
+              :width="800" 
               :fpsDisplay="fpsDisplay" 
               ref="bbCanvasRef"
             ></BabylonCanvas>
         </div>
-        <div class="flex space-x-4">
-            <button
-                @click="cleanup"
-                class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+        <div class="flex space-x-110">
+            <div
+              class="relative border-2 border-gray-300 rounded w-[150px] h-[150px] flex items-center justify-center"
             >
-                Clear
-            </button>
-            <button
-                @click="saveImage"
-                class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-            >
-                Save
-            </button>
-            <div>
-              <p class="text-gray-500 text-sm">FPS:</p>
-              <p ref="fpsDisplay" class="text-gray-700 text-lg font-bold">
-                0
+              <img
+                  v-if="hasImage"
+                  :src="outputImageSource"
+                  alt="Output"
+                  class="w-full h-full object-contain"
+              />
+              <p v-else class=" text-shadow-zinc-50 font-bold text-center text-gray-400">
+                  Your downscaled image sent to the model will appear here
               </p>
+            </div>
+            <div class="flex items-center space-x-10">
+              <button
+                @click="cleanup"
+                class="bg-red-500 text-white px-10 py-2 rounded hover:bg-red-600 font-bold"
+              >
+                  Clear
+              </button>
+              <button
+                  @click="saveImage"
+                  class="bg-green-500 text-white px-10 py-2 rounded hover:bg-green-600 font-bold"
+              >
+                  Send
+              </button>
+              <div>
+                <p ref="fpsDisplay" class="text-gray-300 text-lg font-bold">
+                  0
+                </p>
+              </div>
             </div>
         </div>
     </div>
@@ -243,7 +244,6 @@
 
         const decodedData = JSON.parse(data)
         const prediction = decodedData.prediction
-        console.log('Prediction:', prediction)
 
         const decodedVisuals: Visual[] = decodedData.visuals
 

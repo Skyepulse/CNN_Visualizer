@@ -13,6 +13,8 @@ import {
     Mesh,
 } from '@babylonjs/core';
 
+import * as GUI from '@babylonjs/gui';
+
 import type { Visual } from '@src/components/DrawingCanvas.vue';
 import "@babylonjs/inspector";
 
@@ -41,6 +43,8 @@ export type SceneInformation = {
     wholeRenderCube?: Mesh,
     wholeMatrix?: Float32Array,
     wholeColors?: Float32Array,
+    fullScreenGUI?: GUI.AdvancedDynamicTexture,
+    IntroText: GUI.TextBlock,
 };
 
 //================================//
@@ -64,9 +68,19 @@ export const createScene = async function (canvas: HTMLCanvasElement, fpsDisplay
         }
     }
 
+    const IntroText = new GUI.TextBlock("IntroText");
+    IntroText.text = "This is an animated visualizer of the inner workings of a CNN model for MNIST digit recognition. \n\n Draw a number and press Send to see all steps in the model's Inference process and the final prediction!";
+    IntroText.color = "white";
+    IntroText.fontSize = 24;
+    IntroText.textWrapping = true;
+    IntroText.resizeToFit = true;
+    IntroText.width = "80%";
+    IntroText.height = "auto";
+
     const sceneInformation: SceneInformation = {
         engine: engine,
         inRenderLoop: inRenderLoop,
+        IntroText: IntroText,
     };
     
     resetScene(sceneInformation);
@@ -628,14 +642,10 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
     if (!sceneInformation.light) return;
     if (!sceneInformation.inRenderLoop) return;
 
-    console.log(visuals.length);
-    for(let i = 0; i < visuals.length; i++)
-    {
-        console.log(visuals[i].data.length)
-    }
-
     // reset scene
     await resetScene(sceneInformation);
+
+    sceneInformation.IntroText.isVisible = false;
     
     const tokenAtStart = sceneInformation.animationToken ?? 0;
 
@@ -813,6 +823,7 @@ export const resetScene = async function(sceneInformation: SceneInformation): Pr
         sceneInformation.cubeInstances = [];
     }
 
+    if(sceneInformation.fullScreenGUI) sceneInformation.fullScreenGUI.dispose();
     if(sceneInformation.wholeColors) sceneInformation.wholeColors = new Float32Array(0);
     if(sceneInformation.wholeMatrix) sceneInformation.wholeMatrix = new Float32Array(0);
     if(sceneInformation.wholeRenderCube) sceneInformation.wholeRenderCube.dispose();
@@ -838,6 +849,9 @@ export const resetScene = async function(sceneInformation: SceneInformation): Pr
 
     sceneInformation.scene.clearColor = new Color4(0.1, 0.1, 0.1, 1.0); // Dark gray
 
+    //Stop previous render loop if any
+    sceneInformation.engine.stopRenderLoop();
+
     sceneInformation.engine.runRenderLoop(() => 
     {
         sceneInformation.scene?.render();
@@ -849,6 +863,11 @@ export const resetScene = async function(sceneInformation: SceneInformation): Pr
     sceneInformation.wholeRenderCube.position = new Vector3(0, 0, 0);
     sceneInformation.wholeRenderCube.material = new StandardMaterial("wholeRenderCubeMaterial", sceneInformation.scene);
     sceneInformation.wholeRenderCube.isVisible = false;
+
+    sceneInformation.fullScreenGUI = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, sceneInformation.scene);
+    
+    sceneInformation.fullScreenGUI.addControl(sceneInformation.IntroText);
+    sceneInformation.IntroText.isVisible = true;
     
     //sceneInformation.scene?.debugLayer.show();
 }

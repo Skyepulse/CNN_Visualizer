@@ -17,6 +17,7 @@
   
   body {
     margin: 0;
+    padding: 0;
     place-items: center;
     justify-content: center;
 
@@ -26,7 +27,7 @@
   
   #app {
     margin: 0;
-    padding: 2rem;
+    padding: 0.2rem;
     display: flex;
     width: 100vw;
     height: 100vh;
