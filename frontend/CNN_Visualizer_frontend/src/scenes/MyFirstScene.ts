@@ -669,11 +669,11 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
 
     
     await safeAwait(rotateAroundCircle(sceneInformation, sceneInformation.camera.target.clone(), sceneInformation.camera.position.clone(), Math.PI * 2, 2000));
-    await safeAwait(wait(500));
-    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-10, 5, -25), 1000));
+    await safeAwait(wait(100));
+    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-10, 5, -25), 500));
 
     //[2] CONV LAYER 1
-    await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -7), 1000));
+    await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -7), 500));
     const convLayer1Infos: AddedVisualInfo[] = new Array(6);
     for(let i = 0; i < 6; i++)
     {
@@ -687,8 +687,8 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
         await assignNewRendersToWholeCube(sceneInformation, visualInfo.cube, visualInfo.matrix, visualInfo.color);
     }
 
-    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-20, 5, -40), 1000));
-    await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -15), 1000));
+    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-15, 5, -30), 500));
+    await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -15), 500));
 
     //[3] pooling layer 1
     const poolLayer1Infos: AddedVisualInfo[] = new Array(6);
@@ -731,8 +731,8 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
 
         if (i === 0)
         {
-            await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-10, 5, -45), 1000));
-            await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -25), 1000));
+            await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-10, 5, -40), 500));
+            await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -25), 500));
         }
     }
     await safeAwait(wait(500));
@@ -741,8 +741,8 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
         await assignNewRendersToWholeCube(sceneInformation, visualInfo.cube, visualInfo.matrix, visualInfo.color);
     }
 
-    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-10, 5, -55), 1000));
-    await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -42), 1000));
+    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-10, 5, -49), 500));
+    await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -42), 500));
 
     //[5] POOLING LAYER 2
     const poolLayer2Infos: AddedVisualInfo[] = new Array(16);
