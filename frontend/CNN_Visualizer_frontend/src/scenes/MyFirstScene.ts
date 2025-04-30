@@ -7,6 +7,7 @@ import {
     MeshBuilder,
     StandardMaterial,
     Color4,
+    Color3,
     Vector4,
     Light,
     Matrix,
@@ -107,8 +108,8 @@ export const addVisual = async function(sceneInformation: SceneInformation, visu
     // If the width is pair then it should be placed at x 0.0 - cubeSpace/2 - width/2 * (cubeSize + cubeSpace)
     // If the width is odd then it should be placed at x 0.0 - cubeSize/2 - (width-1)/2 * (cubeSize + cubeSpace)
 
-    const startX = width % 2 === 0 ? -cubeSpace / 2 - (width / 2) * (cubeSize + cubeSpace) : -cubeSize / 2 - ((width - 1) / 2) * (cubeSize + cubeSpace);
-    const startY = height % 2 === 0 ? cubeSpace / 2 + (height / 2) * (cubeSize + cubeSpace) : cubeSize / 2 + ((height - 1) / 2) * (cubeSize + cubeSpace);
+    const startX = -1 * ((width - 1) / 2) * (cubeSize + cubeSpace);
+    const startY = ((height - 1) / 2) * (cubeSize + cubeSpace);
 
     const startPosition: Vector3 = new Vector3(startX, startY, centerPosition.z);
 
@@ -173,8 +174,8 @@ export const addVisualFromInput = async function(sceneInformation: SceneInformat
     // If the width is pair then it should be placed at x 0.0 - cubeSpace/2 - width/2 * (cubeSize + cubeSpace)
     // If the width is odd then it should be placed at x 0.0 - cubeSize/2 - (width-1)/2 * (cubeSize + cubeSpace)
 
-    const startX = width % 2 === 0 ? -cubeSpace / 2 - (width / 2) * (cubeSize + cubeSpace) : -cubeSize / 2 - ((width - 1) / 2) * (cubeSize + cubeSpace);
-    const startY = height % 2 === 0 ? cubeSpace / 2 + (height / 2) * (cubeSize + cubeSpace) : cubeSize / 2 + ((height - 1) / 2) * (cubeSize + cubeSpace);
+    const startX = -((width - 1) / 2) * (cubeSize + cubeSpace);
+    const startY = ((height - 1) / 2) * (cubeSize + cubeSpace);
 
     const startPosition: Vector3 = new Vector3(startX + centerPosition.x, startY + centerPosition.y, centerPosition.z);
 
@@ -264,8 +265,8 @@ export const addVisualFromSubsampling = async function(sceneInformation: SceneIn
 
     const data = visual.data; //[] of numbers between 0 and 255 grayscale colors
 
-    const startX = width % 2 === 0 ? -cubeSpace / 2 - (width / 2) * (cubeSize + cubeSpace) : -cubeSize / 2 - ((width - 1) / 2) * (cubeSize + cubeSpace);
-    const startY = height % 2 === 0 ? cubeSpace / 2 + (height / 2) * (cubeSize + cubeSpace) : cubeSize / 2 + ((height - 1) / 2) * (cubeSize + cubeSpace);
+    const startX = -1 * ((width - 1) / 2) * (cubeSize + cubeSpace);
+    const startY = ((height - 1) / 2) * (cubeSize + cubeSpace);
 
     const startPosition: Vector3 = new Vector3(startX + centerPosition.x, startY + centerPosition.y, centerPosition.z);
 
@@ -381,8 +382,8 @@ export const addVisualFromConvolution = async function(sceneInformation: SceneIn
 
     const data = visual.data; //[] of numbers between 0 and 255 grayscale colors
 
-    const startX = width % 2 === 0 ? -cubeSpace / 2 - (width / 2) * (cubeSize + cubeSpace) : -cubeSize / 2 - ((width - 1) / 2) * (cubeSize + cubeSpace);
-    const startY = height % 2 === 0 ? cubeSpace / 2 + (height / 2) * (cubeSize + cubeSpace) : cubeSize / 2 + ((height - 1) / 2) * (cubeSize + cubeSpace);
+    const startX = -1 * ((width - 1) / 2) * (cubeSize + cubeSpace);
+    const startY = ((height - 1) / 2) * (cubeSize + cubeSpace);
 
     const startPosition: Vector3 = new Vector3(startX + centerPosition.x, startY + centerPosition.y, centerPosition.z);
 
@@ -492,8 +493,8 @@ export const addVisualFromFullConnectedLayer = async function(sceneInformation: 
     if (rows <= 0) rows = 1;
 
     const cols = Math.ceil(length / rows);
-    const startx = cols % 2 === 0 ? -space / 2 - (cols / 2) * (cubeSize + space) : -cubeSize / 2 - ((cols - 1) / 2) * (cubeSize + space);
-    const starty = rows === 1 ? 0 : (rows % 2 === 0 ? space / 2 + (rows / 2) * (cubeSize + space) : cubeSize / 2 + ((rows - 1) / 2) * (cubeSize + space));
+    const startx = -((cols - 1) / 2) * (cubeSize + space);
+    const starty = ((rows - 1) / 2) * (cubeSize + space);
 
     const width = Math.ceil(length / rows);
     const startPosition: Vector3 = new Vector3(startx + centerPosition.x, starty + centerPosition.y, centerPosition.z);
@@ -705,7 +706,7 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
             waitTime = 2000;
         }
 
-        poolLayer1Infos[i] = await safeAwait(addVisualFromSubsampling(sceneInformation, visuals[7 + i], new Vector3(-10 + 3.7 * i, 0, -15), convLayer1Infos[i].matrix, convLayer1Infos[i].color, speed, timeOffset, 0.05));
+        poolLayer1Infos[i] = await safeAwait(addVisualFromSubsampling(sceneInformation, visuals[7 + i], new Vector3((5/2) * (-1) * (3.45 + 0.5) + (3.45 + 0.5) * i, 0, -15), convLayer1Infos[i].matrix, convLayer1Infos[i].color, speed, timeOffset, 0.05));
         await safeAwait(wait(waitTime))
     }
     
@@ -768,7 +769,7 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
         await assignNewRendersToWholeCube(sceneInformation, visualInfo.cube, visualInfo.matrix, visualInfo.color);
     }
 
-    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-15, 5, -73), 1000));
+    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-13, 5, -60), 1000));
     await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -42), 1000));
 
     //[6] FULL CONNECTED LAYER 1
@@ -780,7 +781,7 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
 
     await safeAwait(wait(500));
 
-    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-15, 15, -73), 1000));
+    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-15, 15, -62), 1000));
     await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -44), 1000));
 
     const fullConnectedLayer2Infos = await safeAwait(addVisualFromFullConnectedLayer(sceneInformation, visuals[46], new Vector3(0, 0, -50), [fullConnectedLayer1Infos], 15, 0.05, 2));
@@ -799,7 +800,7 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
 
     await safeAwait(wait(500));
 
-    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(0, 10, -73), 1000));
+    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(0, 8, -68), 1000));
     await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -56), 1000));
 
     const final10 = await safeAwait(addVisualFromFullConnectedLayer(sceneInformation, visuals[48], new Vector3(0,0,-58), [fullConnectedLayer3Infos], 750, 1.0, 1));
