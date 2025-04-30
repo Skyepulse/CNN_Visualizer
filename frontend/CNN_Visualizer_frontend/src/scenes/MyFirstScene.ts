@@ -19,6 +19,8 @@ import * as GUI from '@babylonjs/gui';
 import type { Visual } from '@src/components/DrawingCanvas.vue';
 import "@babylonjs/inspector";
 
+import { createUnlitMaterial } from "@src/scenes/Materials";
+
 //import cubeVertexShader from '@src/Shaders/cubeVertex.glsl?raw';
 //import cubeFragmentShader from '@src/Shaders/cubeFragment.glsl?raw';
 
@@ -92,7 +94,7 @@ export const createScene = async function (canvas: HTMLCanvasElement, fpsDisplay
 //================================//
 export const addVisual = async function(sceneInformation: SceneInformation, visual: Visual, centerPosition: Vector3, space: number = 0.1): Promise<AddedVisualInfo | undefined>
 {
-    if (sceneInformation === null) return;
+    if (sceneInformation === null || sceneInformation.scene === undefined) return;
 
     const height = visual.height;
     const width = visual.width;
@@ -134,9 +136,9 @@ export const addVisual = async function(sceneInformation: SceneInformation, visu
     }
 
     baseCube.thinInstanceSetBuffer("matrix", matrixData, 16);
-    baseCube.thinInstanceSetBuffer("color", colors, 4);
+    baseCube.thinInstanceSetBuffer("customColor", colors, 4);
 
-    baseCube.material = new StandardMaterial(`baseCubeMaterial_${numInstances}`, sceneInformation.scene);
+    baseCube.material = createUnlitMaterial(sceneInformation.scene);
     numInstances++;
 
     return {matrix: matrixData, color: colors, cube: baseCube};
@@ -145,7 +147,7 @@ export const addVisual = async function(sceneInformation: SceneInformation, visu
 //================================//
 export const addVisualFromInput = async function(sceneInformation: SceneInformation, visual: Visual, centerPosition: Vector3, lastVisualInfos: AddedVisualInfo[], timeTravel: number, timeOffset: number, space: number = 0.1): Promise<AddedVisualInfo | undefined>
 {
-    if (sceneInformation === null || lastVisualInfos === undefined) return;
+    if (sceneInformation === null || sceneInformation.scene === undefined || lastVisualInfos === undefined) return;
 
     const numInputs = lastVisualInfos.length;
     
@@ -199,9 +201,9 @@ export const addVisualFromInput = async function(sceneInformation: SceneInformat
         finalColorsData.set([gray, gray, gray, 1.0], i * 4); // RGBA format
     }
 
-    baseCube.material = new StandardMaterial(`baseCube_${numInstances}`, sceneInformation.scene);
+    baseCube.material = createUnlitMaterial(sceneInformation.scene);
     baseCube.thinInstanceSetBuffer("matrix", fromWholeMatrix, 16);
-    baseCube.thinInstanceSetBuffer("color", fromWholeColors, 4);
+    baseCube.thinInstanceSetBuffer("customColor", fromWholeColors, 4);
 
     numInstances++;
 
@@ -238,7 +240,7 @@ export const addVisualFromInput = async function(sceneInformation: SceneInformat
         }
 
         baseCube.thinInstanceSetBuffer("matrix", currentMatrixData, 16);
-        baseCube.thinInstanceSetBuffer("color", currentColorsData, 4);
+        baseCube.thinInstanceSetBuffer("customColor", currentColorsData, 4);
 
         if (!allFinished) {
             requestAnimationFrame(updateMatrices);
@@ -253,7 +255,7 @@ export const addVisualFromInput = async function(sceneInformation: SceneInformat
 //================================//
 export const addVisualFromSubsampling = async function(sceneInformation: SceneInformation, visual: Visual, centerPosition: Vector3, fromMatrix: Float32Array, fromColors: Float32Array, timeTravel: number, timeOffset: number, space: number = 0.1): Promise<AddedVisualInfo | undefined>
 {
-    if (sceneInformation === null || fromMatrix === undefined) return;
+    if (sceneInformation === null || sceneInformation.scene === undefined || fromMatrix === undefined) return;
 
     const height = visual.height;
     const width = visual.width;
@@ -290,9 +292,9 @@ export const addVisualFromSubsampling = async function(sceneInformation: SceneIn
         finalColorsData.set([gray, gray, gray, 1.0], i * 4); // RGBA format
     }
     
-    baseCube.material = new StandardMaterial(`baseCube_${numInstances}`, sceneInformation.scene);
+    baseCube.material = createUnlitMaterial(sceneInformation.scene);
     baseCube.thinInstanceSetBuffer("matrix", fromMatrix, 16);
-    baseCube.thinInstanceSetBuffer("color", fromColors, 4);
+    baseCube.thinInstanceSetBuffer("customColor", fromColors, 4);
 
     numInstances++;
 
@@ -336,13 +338,13 @@ export const addVisualFromSubsampling = async function(sceneInformation: SceneIn
         }
 
         baseCube.thinInstanceSetBuffer("matrix", currentMatrixData, 16);
-        baseCube.thinInstanceSetBuffer("color", currentColorsData, 4);
+        baseCube.thinInstanceSetBuffer("customColor", currentColorsData, 4);
 
         if (!allFinished) {
             requestAnimationFrame(updateMatrices);
         } else {
             baseCube.thinInstanceSetBuffer("matrix", finalMatrixData, 16);
-            baseCube.thinInstanceSetBuffer("color", finalColorsData, 4);
+            baseCube.thinInstanceSetBuffer("customColor", finalColorsData, 4);
         }
     };
 
@@ -355,7 +357,7 @@ export const addVisualFromSubsampling = async function(sceneInformation: SceneIn
 // To optimize here the time offset is also the travel time for the animation
 export const addVisualFromConvolution = async function(sceneInformation: SceneInformation, visual: Visual, centerPosition: Vector3, lastVisualInfos: AddedVisualInfo[], timeTravel: number, space: number = 0.1, kernelSize: number = 5, stride: number = 1): Promise<AddedVisualInfo | undefined>
 {
-    if (sceneInformation === null || lastVisualInfos === undefined) return;
+    if (sceneInformation === null || sceneInformation.scene === undefined || lastVisualInfos === undefined) return;
 
     const numInputs = lastVisualInfos.length;
     
@@ -410,9 +412,9 @@ export const addVisualFromConvolution = async function(sceneInformation: SceneIn
     const currentToken = sceneInformation.animationToken ?? 0;
     const globalStartTime = performance.now();
 
-    baseCube.material = new StandardMaterial(`baseCubeMaterial_${numInstances}`, sceneInformation.scene);
+    baseCube.material = createUnlitMaterial(sceneInformation.scene);
     baseCube.thinInstanceSetBuffer("matrix", fromWholeMatrix, 16);
-    baseCube.thinInstanceSetBuffer("color", fromWholeColors, 4);
+    baseCube.thinInstanceSetBuffer("customColor", fromWholeColors, 4);
 
     numInstances++;
 
@@ -453,13 +455,13 @@ export const addVisualFromConvolution = async function(sceneInformation: SceneIn
         }
 
         baseCube.thinInstanceSetBuffer("matrix", currentMatrixData, 16);
-        baseCube.thinInstanceSetBuffer("color", currentColorsData, 4);
+        baseCube.thinInstanceSetBuffer("customColor", currentColorsData, 4);
 
         if (!allFinished) {
             requestAnimationFrame(updateMatrices);
         } else {
             baseCube.thinInstanceSetBuffer("matrix", finalMatrixData, 16);
-            baseCube.thinInstanceSetBuffer("color", finalColorsData, 4);
+            baseCube.thinInstanceSetBuffer("customColor", finalColorsData, 4);
         }
     };
 
@@ -471,7 +473,7 @@ export const addVisualFromConvolution = async function(sceneInformation: SceneIn
 //================================//
 export const addVisualFromFullConnectedLayer = async function(sceneInformation: SceneInformation, visual: Visual, centerPosition: Vector3, lastVisualInfos: AddedVisualInfo[], timeTravel: number, space: number = 0.1, rows: number = 2): Promise<AddedVisualInfo | undefined>
 {
-    if (sceneInformation === null || lastVisualInfos === undefined) return;
+    if (sceneInformation === null || sceneInformation.scene === undefined || lastVisualInfos === undefined) return;
 
     const numInputs = lastVisualInfos.length;
     
@@ -521,9 +523,9 @@ export const addVisualFromFullConnectedLayer = async function(sceneInformation: 
     const currentToken = sceneInformation.animationToken ?? 0;
     const globalStartTime = performance.now();
 
-    baseCube.material = new StandardMaterial(`baseCubeMaterial_${numInstances}`, sceneInformation.scene);
+    baseCube.material = createUnlitMaterial(sceneInformation.scene);
     baseCube.thinInstanceSetBuffer("matrix", fromWholeMatrix, 16);
-    baseCube.thinInstanceSetBuffer("color", fromWholeColors, 4);
+    baseCube.thinInstanceSetBuffer("customColor", fromWholeColors, 4);
 
     numInstances++;
 
@@ -573,13 +575,13 @@ export const addVisualFromFullConnectedLayer = async function(sceneInformation: 
         }
 
         baseCube.thinInstanceSetBuffer("matrix", currentMatrixData, 16);
-        baseCube.thinInstanceSetBuffer("color", currentColorsData, 4);
+        baseCube.thinInstanceSetBuffer("customColor", currentColorsData, 4);
 
         if (!allFinished) {
             requestAnimationFrame(updateMatrices);
         } else {
             baseCube.thinInstanceSetBuffer("matrix", finalMatrixData, 16);
-            baseCube.thinInstanceSetBuffer("color", finalColorsData, 4);
+            baseCube.thinInstanceSetBuffer("customColor", finalColorsData, 4);
         }
     };
 
@@ -862,7 +864,7 @@ export const resetScene = async function(sceneInformation: SceneInformation): Pr
 
     sceneInformation.wholeRenderCube = MeshBuilder.CreateBox("wholeRenderCube", { size: 0.2 }, sceneInformation.scene);
     sceneInformation.wholeRenderCube.position = new Vector3(0, 0, 0);
-    sceneInformation.wholeRenderCube.material = new StandardMaterial("wholeRenderCubeMaterial", sceneInformation.scene);
+    sceneInformation.wholeRenderCube.material = createUnlitMaterial(sceneInformation.scene);
     sceneInformation.wholeRenderCube.isVisible = false;
 
     sceneInformation.fullScreenGUI = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, sceneInformation.scene);
@@ -1041,7 +1043,7 @@ const assignNewRendersToWholeCube = async function(sceneInformation: SceneInform
 
     //We set the new buffer to the wholeRenderCube
     sceneInformation.wholeRenderCube.thinInstanceSetBuffer("matrix", sceneInformation.wholeMatrix, 16);
-    sceneInformation.wholeRenderCube.thinInstanceSetBuffer("color", sceneInformation.wholeColors, 4);
+    sceneInformation.wholeRenderCube.thinInstanceSetBuffer("customColor", sceneInformation.wholeColors, 4);
 
     cube.isVisible = false; // Hide the original cube
     sceneInformation.wholeRenderCube.isVisible = true; // Show the whole render cube
