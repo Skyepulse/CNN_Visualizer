@@ -170,10 +170,10 @@
   const drawInitialText = () => {
     if (!ctx.value || !canvas.value) return
 
-    ctx.value.font = '28px system-ui'
+    ctx.value.font = '26px system-ui'
     ctx.value.fillStyle = 'white'
     ctx.value.textAlign = 'center'
-    ctx.value.fillText('Draw here ✍️', canvas.value.width / 2, canvas.value.height / 2)
+    ctx.value.fillText('Draw a number from 0-9 here ✍️', canvas.value.width / 2, canvas.value.height / 2)
   }
 
   //================================//
