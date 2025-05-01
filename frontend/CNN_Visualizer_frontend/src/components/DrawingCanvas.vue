@@ -1,64 +1,122 @@
 <template>
-    <div class="flex flex-col items-start space-y-4 p-4">
-        <div class="flex items-center space-x-4">
+    <div class="flex flex-row items-start space-x-4 p-4 w-full h-full">
+        <div ref = "canvasContainer" class="flex flex-col items-start space-y-4 w-1/3">
             <canvas
-            ref="canvas"
-            width="400"
-            height="400"
-            class="border-2 border-gray-300 rounded cursor-crosshair bg-amber-50"
-            @mousedown="startDrawing"
-            @mouseup="stopDrawing"
-            @mousemove="draw"
-            @mouseleave="stopDrawing"
+              ref="canvas"
+              width="400"
+              height="400"
+              class="border-2 border-gray-300 rounded cursor-crosshair"
+              @mousedown="startDrawing"
+              @mouseup="stopDrawing"
+              @mousemove="draw"
+              @mouseleave="stopDrawing"
             >
             </canvas>
+            <div
+              class="relative border-2 border-gray-300 rounded w-[150px] h-[150px] flex items-center justify-center"
+            >
+                <img
+                    v-if="hasImage"
+                    :src="outputImageSource"
+                    alt="Output"
+                    class="w-full h-full object-contain"
+                />
+                <p v-else class=" text-shadow-zinc-50 font-bold text-center text-gray-400">
+                    Your downscaled image sent to the model will appear here
+                </p>
+            </div>
+        </div>
+        <div class="flex flex-col w-2/3 space-y-4">
             <BabylonCanvas 
               v-if="fpsDisplay"
               :height="400" 
               :width="800" 
               :fpsDisplay="fpsDisplay" 
               ref="bbCanvasRef"
-            ></BabylonCanvas>
-        </div>
-        <div class="flex space-x-110">
-            <div
-              class="relative border-2 border-gray-300 rounded w-[150px] h-[150px] flex items-center justify-center"
             >
-              <img
-                  v-if="hasImage"
-                  :src="outputImageSource"
-                  alt="Output"
-                  class="w-full h-full object-contain"
-              />
-              <p v-else class=" text-shadow-zinc-50 font-bold text-center text-gray-400">
-                  Your downscaled image sent to the model will appear here
-              </p>
-            </div>
-            <div class="flex items-center space-x-10">
-              <button
-                @click="cleanup"
-                class="bg-red-500 text-white px-10 py-2 rounded hover:bg-red-600 font-bold"
-              >
-                  Clear
-              </button>
-              <button
-                  @click="saveImage"
-                  class="bg-green-500 text-white px-10 py-2 rounded hover:bg-green-600 font-bold"
-              >
-                  Send
-              </button>
-              <div>
-                <p ref="fpsDisplay" class="text-gray-300 text-lg font-bold">
-                  0
-                </p>
-              </div>
+            </BabylonCanvas>
+            <div class="flex justify-center items-baseline flex-wrap">
+                <div class="flex m-2">
+                    <button class="text-base rounded-r-none  hover:scale-110 focus:outline-none flex justify-center px-4 py-2 rounded font-bold cursor-pointer 
+                    hover:bg-teal-200  
+                    bg-gray-100  
+                    text-teal-700 
+                      border duration-200 ease-in-out 
+                    border-teal-600 transition
+                      max-h-[40px]"
+                    >
+                        <div class="flex leading-4.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-left w-5 h-5">
+                                <polyline points="15 18 9 12 15 6">
+                                </polyline>
+                            </svg>
+                            <fit-text>Previous</fit-text>
+                        </div>
+                    </button>
+                    <button class="text-base  rounded-l-none border-l-0  hover:scale-110 focus:outline-none flex justify-center px-4 py-2 rounded font-bold cursor-pointer 
+                    hover:bg-teal-200  
+                    bg-gray-100  
+                    text-teal-700 
+                      border duration-200 ease-in-out 
+                    border-teal-600 transition
+                      max-h-[40px]"
+                    >
+                        <div class="flex leading-4.5">
+                            <fit-text>Next</fit-text>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right w-5 h-5 ml-1">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </div>
+                    </button>
+                </div>
+                <div class="flex m-2">
+                    <button class="text-base  rounded-r-none  hover:scale-110 focus:outline-none flex justify-center px-4 py-2 rounded font-bold cursor-pointer 
+                    hover:bg-teal-700 hover:text-teal-100 
+                    bg-gray-100  
+                    text-teal-700 
+                      border duration-200 ease-in-out 
+                    border-teal-600 transition
+                      max-h-[40px]"
+                      @click="sendCanvasAs28x28Grayscale"
+                    >
+                        <div class="flex leading-5">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye w-5 h-5 mr-1">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <fit-text>Send to Model</fit-text>
+                        </div>
+                    </button>
+                    <button class="text-base  rounded-l-none border-l-0  hover:scale-110 focus:outline-none flex justify-center px-4 py-2 rounded font-bold cursor-pointer 
+                    hover:bg-teal-700 hover:text-teal-100 
+                    bg-gray-100  
+                    text-teal-700 
+                      border duration-200 ease-in-out 
+                    border-teal-600 transition
+                      max-h-[40px]"
+                      @click="cleanup"
+                    >   
+                        <div class="flex leading-5">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit w-5 h-5 mr-1">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                            <fit-text>Clear Canvas</fit-text>
+                        </div>
+                    </button>
+                    <div class="flex m-2">
+                        <p ref="fpsDisplay" class="text-gray-300 text-lg font-bold">
+                          0
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted, watchEffect } from 'vue'
+  import { ref, onMounted, onUnmounted, watchEffect } from 'vue'
   import { useWebSocket } from '@src/composables/useWebSocket'
   import BabylonCanvas from './babylonCanvas.vue'
   import { launchMnistAnimation, resetScene } from '@src/scenes/MyFirstScene'
@@ -77,6 +135,7 @@
 
   //================================//
   const canvas = ref<HTMLCanvasElement | null>(null)
+  const canvasContainer = ref<HTMLDivElement | null>(null)
   const isDrawing = ref<boolean>(false)
   const ctx = ref<CanvasRenderingContext2D | null>(null)
   const fpsDisplay = ref<HTMLParagraphElement | undefined>(undefined)
@@ -87,6 +146,10 @@
   const hasDrawn = ref<boolean>(false)
 
   const bbCanvasRef = ref<InstanceType<typeof BabylonCanvas> | null>(null)
+
+  const navigation = ref<HTMLButtonElement | null>(null)
+  const leftA = ref<HTMLButtonElement | null>(null)
+  const rightA = ref<HTMLButtonElement | null>(null)
 
   //================================//
   onMounted(() => {
@@ -106,6 +169,13 @@
     ctx.value.fillRect(0, 0, canvas.value.width, canvas.value.height)
 
     drawInitialText()
+
+    window.addEventListener('resize', resizeCanvas)
+    resizeCanvas()
+  })
+
+  onUnmounted(() => {
+    window.removeEventListener('resize', resizeCanvas)
   })
 
   //================================//
@@ -123,6 +193,35 @@
     ctx.value.beginPath()
     ctx.value.moveTo(getX(e), getY(e))
   }
+
+  //================================//
+  const resizeCanvas = () => {
+    if (!canvas.value) return
+
+    // Get the new computed size (CSS width)
+    const rect = canvasContainer.value != null ? canvasContainer.value.getBoundingClientRect() : { width: 400, height: 400 }
+    const size = rect.width  // Because it's square (aspect-square)
+
+    console.log('Resizing canvas to:', size)
+
+    // Set the internal resolution to match
+    canvas.value.width = size
+    canvas.value.height = size
+
+    // Optional: redraw background or initial text if needed
+    if (ctx.value) {
+      ctx.value.lineWidth = size * 0.06  // Keep thickness proportional
+      ctx.value.lineCap = 'round'
+      ctx.value.strokeStyle = '#FFF'
+      ctx.value.fillStyle = 'black'
+      ctx.value.fillRect(0, 0, size, size)
+
+      if (!hasDrawn.value) {
+        drawInitialText()
+      }
+    }
+  }
+
 
   //================================//
   const draw = (e: MouseEvent): void => {
