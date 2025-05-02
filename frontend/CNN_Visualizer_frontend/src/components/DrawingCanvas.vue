@@ -35,22 +35,23 @@
               ref="bbCanvasRef"
             >
             </BabylonCanvas>
-            <div class="flex justify-center items-baseline flex-wrap">
-                <div class="flex m-2">
+            <div class="flex justify-center flex-wrap">
+                <div class="flex m-2" v-if ="navigation">
                     <button class="text-base rounded-r-none  hover:scale-110 focus:outline-none flex justify-center px-4 py-2 rounded font-bold cursor-pointer 
                     hover:bg-teal-200  
                     bg-gray-100  
                     text-teal-700 
                       border duration-200 ease-in-out 
                     border-teal-600 transition
-                      max-h-[40px]"
+                      max-h-[40px]
+                      w-full"
                     >
                         <div class="flex leading-4.5">
                             <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-left w-5 h-5">
                                 <polyline points="15 18 9 12 15 6">
                                 </polyline>
                             </svg>
-                            <fit-text>Previous</fit-text>
+                            <fit-text>Last step</fit-text>
                         </div>
                     </button>
                     <button class="text-base  rounded-l-none border-l-0  hover:scale-110 focus:outline-none flex justify-center px-4 py-2 rounded font-bold cursor-pointer 
@@ -59,10 +60,11 @@
                     text-teal-700 
                       border duration-200 ease-in-out 
                     border-teal-600 transition
-                      max-h-[40px]"
+                      max-h-[40px]
+                      w-full"
                     >
                         <div class="flex leading-4.5">
-                            <fit-text>Next</fit-text>
+                            <fit-text>Next step</fit-text>
                             <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right w-5 h-5 ml-1">
                                 <polyline points="9 18 15 12 9 6"></polyline>
                             </svg>
@@ -104,8 +106,8 @@
                             <fit-text>Clear Canvas</fit-text>
                         </div>
                     </button>
-                    <div class="flex m-2">
-                        <p ref="fpsDisplay" class="text-gray-300 text-lg font-bold">
+                    <div class="flex ml-2">
+                        <p ref="fpsDisplay" class="text-gray-300 text-lg font-bold [font-size:calc(1vw+0.3rem)] flex items-center justify-center h-full">
                           0
                         </p>
                     </div>
@@ -147,7 +149,7 @@
 
   const bbCanvasRef = ref<InstanceType<typeof BabylonCanvas> | null>(null)
 
-  const navigation = ref<HTMLButtonElement | null>(null)
+  const navigation = ref<boolean | null>(null)
   const leftA = ref<HTMLButtonElement | null>(null)
   const rightA = ref<HTMLButtonElement | null>(null)
 
@@ -196,13 +198,11 @@
 
   //================================//
   const resizeCanvas = () => {
-    if (!canvas.value) return
+    if (!canvas.value || !bbCanvasRef.value ) return
 
     // Get the new computed size (CSS width)
     const rect = canvasContainer.value != null ? canvasContainer.value.getBoundingClientRect() : { width: 400, height: 400 }
     const size = rect.width  // Because it's square (aspect-square)
-
-    console.log('Resizing canvas to:', size)
 
     // Set the internal resolution to match
     canvas.value.width = size
@@ -247,6 +247,8 @@
   const cleanup = (): void => {
     if (!canvas.value || !ctx.value) return
 
+    navigation.value = false
+
     ctx.value.clearRect(0, 0, canvas.value.width, canvas.value.height)
     ctx.value.fillStyle='black'
     ctx.value.fillRect(0, 0, canvas.value.width, canvas.value.height)
@@ -269,7 +271,11 @@
   const drawInitialText = () => {
     if (!ctx.value || !canvas.value) return
 
-    ctx.value.font = '26px system-ui'
+    console.log('Drawing initial text on canvas')
+
+    const canvasWidth = canvas.value.width
+
+    ctx.value.font = `${(canvasWidth * 26 / 400)}px system-ui`
     ctx.value.fillStyle = 'white'
     ctx.value.textAlign = 'center'
     ctx.value.fillText('Draw a number from 0-9 here ✍️', canvas.value.width / 2, canvas.value.height / 2)
@@ -352,7 +358,11 @@
 
         if(bbCanvasRef.value?.getSceneInformation() !== undefined && bbCanvasRef.value?.getSceneInformation() !== null){
           const sceneInfo: SceneInformation = bbCanvasRef.value.getSceneInformation() as SceneInformation
-          await launchMnistAnimation(sceneInfo, decodedVisuals)
+          
+          await launchMnistAnimation(sceneInfo, decodedVisuals).then(() => {
+            navigation.value = true;
+          });
+
         }
 
       } catch (error) {
