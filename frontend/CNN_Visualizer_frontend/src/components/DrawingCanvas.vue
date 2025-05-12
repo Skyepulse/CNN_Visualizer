@@ -45,6 +45,7 @@
                     border-teal-600 transition
                       max-h-[40px]
                       w-full"
+                      @click="goToPreviousStep"
                     >
                         <div class="flex leading-4.5">
                             <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-left w-5 h-5">
@@ -62,6 +63,7 @@
                     border-teal-600 transition
                       max-h-[40px]
                       w-full"
+                      @click="goToNextStep"
                     >
                         <div class="flex leading-4.5">
                             <fit-text>Next step</fit-text>
@@ -121,7 +123,7 @@
   import { ref, onMounted, onUnmounted, watchEffect } from 'vue'
   import { useWebSocket } from '@src/composables/useWebSocket'
   import BabylonCanvas from './babylonCanvas.vue'
-  import { launchMnistAnimation, resetScene } from '@src/scenes/MyFirstScene'
+  import { launchMnistAnimation, resetScene, goToNextStep, goToPreviousStep } from '@src/scenes/MyFirstScene'
   import type { SceneInformation } from '@src/scenes/MyFirstScene'
 
   //================================//
@@ -170,10 +172,9 @@
     ctx.value.fillStyle='black'
     ctx.value.fillRect(0, 0, canvas.value.width, canvas.value.height)
 
-    drawInitialText()
+    resizeCanvas()
 
     window.addEventListener('resize', resizeCanvas)
-    resizeCanvas()
   })
 
   onUnmounted(() => {
@@ -198,7 +199,7 @@
 
   //================================//
   const resizeCanvas = () => {
-    if (!canvas.value || !bbCanvasRef.value ) return
+    if (!canvas.value) return
 
     // Get the new computed size (CSS width)
     const rect = canvasContainer.value != null ? canvasContainer.value.getBoundingClientRect() : { width: 400, height: 400 }

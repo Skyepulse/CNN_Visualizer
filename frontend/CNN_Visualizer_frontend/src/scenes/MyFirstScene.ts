@@ -5,24 +5,18 @@ import {
     Vector3,
     DirectionalLight,
     MeshBuilder,
-    StandardMaterial,
     Color4,
-    Color3,
     Vector4,
     Light,
     Matrix,
     Mesh,
+    type int,
 } from '@babylonjs/core';
 
 import * as GUI from '@babylonjs/gui';
-
 import type { Visual } from '@src/components/DrawingCanvas.vue';
 import "@babylonjs/inspector";
-
 import { createUnlitMaterial } from "@src/scenes/Materials";
-
-//import cubeVertexShader from '@src/Shaders/cubeVertex.glsl?raw';
-//import cubeFragmentShader from '@src/Shaders/cubeFragment.glsl?raw';
 
 //================================//
 export type CameraMovements = {
@@ -32,7 +26,58 @@ export type CameraMovements = {
     goBack: boolean,
 }
 
+//================================//
 const CAMERA_MOVEMENTS = { goLeft: false, goRight: false, goFront: false, goBack: false};
+const STEP_POSITIONS = {previous: false, next: false}
+let step_lock = false;
+
+//================================//
+const ANIMATION_PLACEMENTS = [
+    new Vector3(-10, 5, -14),
+    new Vector3(-10, 5, -25),
+    new Vector3(-15, 5, -30),
+    new Vector3(-10, 5, -40),
+    new Vector3(-10, 5, -49),
+    new Vector3(-13, 5, -60),
+    new Vector3(-15, 15, -62),
+    new Vector3(0, 8, -68)
+]
+
+//================================//
+const ANIMATION_LOOKATS = [
+    new Vector3(0, 0, 0),
+    new Vector3(0, 0, -7),
+    new Vector3(0, 0, -15),
+    new Vector3(0, 0, -25),
+    new Vector3(0, 0, -42),
+    new Vector3(0, 0, -42),
+    new Vector3(0, 0, -44),
+    new Vector3(0, 0, -56),
+]
+
+//================================//
+const ANIMATION_CUBES = [
+    [1],
+    [2],
+    [3],
+    [4],
+    [5],
+    [6],
+    [7, 8],
+    [9]
+]
+
+//================================//
+const ANIMATION_STEPS = [
+    {text: 'The initial 28x28 grayscale image sent to the model. This enters the model for inference.', pose: 0},
+    {text: 'The first convolutional layer with 6 filters of size 28x28. They can be interpreted as different feature detectors looking for patterns like edges, corners or curves. Can you recognize some?', pose: 1},
+    {text: 'The first pooling layer that reduces the size of each feature map by 2x, making the model more resistant to small variations in input. We now have 6 14x14 features.', pose: 2},
+    {text: 'The second convolutional layer with 16 filters combines the previous features to detect more complex patterns. We have 16 10x10 features.', pose: 3},
+    {text: 'The second pooling layer further reduces the size while preserving important features. We now have 16 5X5 features', pose: 4}, 
+    {text: 'We flatten the 16 5X5 features to prepare for the fully connected layers. In these layers, every single entry pixels has a saying in the each output pixel. That makes 48,000 weights for this layer alone!', pose: 5},
+    {text: 'Hidden layers with respectively 120 and 84 neurons continues to process the information.', pose: 6},
+    {text: 'Final output layer with 10 neurons - one for each digit (0-9). The brightest neuron indicates the predicted digit. You may recognize that the model associates the features in your drawing to other numbers to some extent, which are they?', pose: 7}
+]
 
 //================================//
 export type SceneInformation = {
@@ -48,6 +93,7 @@ export type SceneInformation = {
     wholeColors?: Float32Array,
     fullScreenGUI?: GUI.AdvancedDynamicTexture,
     IntroText: GUI.TextBlock,
+    currentStep: int
 };
 
 //================================//
@@ -74,7 +120,6 @@ export const createScene = async function (canvas: HTMLCanvasElement, fpsDisplay
     const IntroText = new GUI.TextBlock("IntroText");
     IntroText.text = "This is an animated visualizer of the inner workings of a CNN model for MNIST digit recognition. \n\n Draw a number and press Send to see all steps in the model's Inference process and the final prediction!";
     IntroText.color = "white";
-    IntroText.fontSize = 24;
     IntroText.textWrapping = true;
     IntroText.resizeToFit = true;
     IntroText.width = "80%";
@@ -84,6 +129,8 @@ export const createScene = async function (canvas: HTMLCanvasElement, fpsDisplay
         engine: engine,
         inRenderLoop: inRenderLoop,
         IntroText: IntroText,
+        currentStep: 0,
+        cubeInstances: [],
     };
     
     resetScene(sceneInformation);
@@ -660,23 +707,24 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
         return result;
     };
 
+    setCameraPosition
+
     // [1] INPUT IMAGE
     const inputImageInfo = await safeAwait(addVisual(sceneInformation, visuals[0], new Vector3(0, 0, 0), 0.2)) as AddedVisualInfo;
     sceneInformation.cubeInstances?.push(inputImageInfo.cube);
 
-    setCameraPosition(sceneInformation, new Vector3(-10, 5, -14));
-    setCameraLookAt(sceneInformation, new Vector3(0, 0, 0));
+    setCameraPosition(sceneInformation, ANIMATION_PLACEMENTS[0]);
+    setCameraLookAt(sceneInformation, ANIMATION_LOOKATS[0]);
 
     await safeAwait(wait(100));
     await assignNewRendersToWholeCube(sceneInformation, inputImageInfo.cube, inputImageInfo.matrix, inputImageInfo.color);
 
-    
     await safeAwait(rotateAroundCircle(sceneInformation, sceneInformation.camera.target.clone(), sceneInformation.camera.position.clone(), Math.PI * 2, 2000));
     await safeAwait(wait(100));
-    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-10, 5, -25), 500));
+    await safeAwait(setTimedCameraPosition(sceneInformation, ANIMATION_PLACEMENTS[1], 500));
+    await safeAwait(setTimedCameraLookAt(sceneInformation, ANIMATION_LOOKATS[1], 500));
 
     //[2] CONV LAYER 1
-    await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -7), 500));
     const convLayer1Infos: AddedVisualInfo[] = new Array(6);
     for(let i = 0; i < 6; i++)
     {
@@ -690,8 +738,8 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
         await assignNewRendersToWholeCube(sceneInformation, visualInfo.cube, visualInfo.matrix, visualInfo.color);
     }
 
-    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-15, 5, -30), 500));
-    await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -15), 500));
+    await safeAwait(setTimedCameraPosition(sceneInformation, ANIMATION_PLACEMENTS[2], 500));
+    await safeAwait(setTimedCameraLookAt(sceneInformation, ANIMATION_LOOKATS[2], 500));
 
     //[3] pooling layer 1
     const poolLayer1Infos: AddedVisualInfo[] = new Array(6);
@@ -734,8 +782,8 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
 
         if (i === 0)
         {
-            await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-10, 5, -40), 500));
-            await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -25), 500));
+            await safeAwait(setTimedCameraPosition(sceneInformation, ANIMATION_PLACEMENTS[3], 500));
+            await safeAwait(setTimedCameraLookAt(sceneInformation, ANIMATION_LOOKATS[3], 500));
         }
     }
     await safeAwait(wait(500));
@@ -744,8 +792,8 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
         await assignNewRendersToWholeCube(sceneInformation, visualInfo.cube, visualInfo.matrix, visualInfo.color);
     }
 
-    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-10, 5, -49), 500));
-    await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -42), 500));
+    await safeAwait(setTimedCameraPosition(sceneInformation, ANIMATION_PLACEMENTS[4], 500));
+    await safeAwait(setTimedCameraLookAt(sceneInformation, ANIMATION_LOOKATS[4], 500));
 
     //[5] POOLING LAYER 2
     const poolLayer2Infos: AddedVisualInfo[] = new Array(16);
@@ -771,8 +819,8 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
         await assignNewRendersToWholeCube(sceneInformation, visualInfo.cube, visualInfo.matrix, visualInfo.color);
     }
 
-    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-13, 5, -60), 1000));
-    await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -42), 1000));
+    await safeAwait(setTimedCameraPosition(sceneInformation, ANIMATION_PLACEMENTS[5], 1000));
+    await safeAwait(setTimedCameraLookAt(sceneInformation, ANIMATION_LOOKATS[5], 1000));
 
     //[6] FULL CONNECTED LAYER 1
     const fullConnectedLayer1Infos = await safeAwait(addVisualFromInput(sceneInformation, visuals[45], new Vector3(0, 0, -46), poolLayer2Infos, 1000, 0, 0.05));
@@ -783,8 +831,8 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
 
     await safeAwait(wait(500));
 
-    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(-15, 15, -62), 1000));
-    await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -44), 1000));
+    await safeAwait(setTimedCameraPosition(sceneInformation, ANIMATION_PLACEMENTS[6], 1000));
+    await safeAwait(setTimedCameraLookAt(sceneInformation, ANIMATION_LOOKATS[6], 1000));
 
     const fullConnectedLayer2Infos = await safeAwait(addVisualFromFullConnectedLayer(sceneInformation, visuals[46], new Vector3(0, 0, -50), [fullConnectedLayer1Infos], 15, 0.05, 2));
     await safeAwait(wait(15*visuals[46].data.length));
@@ -802,8 +850,8 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
 
     await safeAwait(wait(500));
 
-    await safeAwait(setTimedCameraPosition(sceneInformation, new Vector3(0, 8, -68), 1000));
-    await safeAwait(setTimedCameraLookAt(sceneInformation, new Vector3(0, 0, -56), 1000));
+    await safeAwait(setTimedCameraPosition(sceneInformation, ANIMATION_PLACEMENTS[7], 1000));
+    await safeAwait(setTimedCameraLookAt(sceneInformation, ANIMATION_LOOKATS[7], 1000));
 
     const final10 = await safeAwait(addVisualFromFullConnectedLayer(sceneInformation, visuals[48], new Vector3(0,0,-58), [fullConnectedLayer3Infos], 750, 1.0, 1));
     await safeAwait(wait(7500));
@@ -825,6 +873,10 @@ export const resetScene = async function(sceneInformation: SceneInformation): Pr
         });
         sceneInformation.cubeInstances = [];
     }
+
+    sceneInformation.currentStep = 0;
+    STEP_POSITIONS.next = false;
+    STEP_POSITIONS.previous = false;
 
     if(sceneInformation.fullScreenGUI) sceneInformation.fullScreenGUI.dispose();
     if(sceneInformation.wholeColors) sceneInformation.wholeColors = new Float32Array(0);
@@ -860,6 +912,7 @@ export const resetScene = async function(sceneInformation: SceneInformation): Pr
         sceneInformation.scene?.render();
         sceneInformation.inRenderLoop?.();
         processCameraMovements(sceneInformation);
+        processStepPositions(sceneInformation);
     });
 
     sceneInformation.wholeRenderCube = MeshBuilder.CreateBox("wholeRenderCube", { size: 0.2 }, sceneInformation.scene);
@@ -867,8 +920,13 @@ export const resetScene = async function(sceneInformation: SceneInformation): Pr
     sceneInformation.wholeRenderCube.material = createUnlitMaterial(sceneInformation.scene);
     sceneInformation.wholeRenderCube.isVisible = false;
 
+    sceneInformation.cubeInstances = [];
+    sceneInformation.cubeInstances.push(sceneInformation.wholeRenderCube);
+
     sceneInformation.fullScreenGUI = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, sceneInformation.scene);
     
+    sceneInformation.IntroText.fontSize = 40 *  window.outerWidth / 1920;
+    console.log(sceneInformation.IntroText.fontSize);
     sceneInformation.fullScreenGUI.addControl(sceneInformation.IntroText);
     sceneInformation.IntroText.isVisible = true;
     
@@ -1098,4 +1156,86 @@ function processCameraMovements(sceneInformation: SceneInformation): void {
         camera.position.subtractInPlace(forward.scale(speed));
         camera.target.subtractInPlace(forward.scale(speed));
     }
-}   
+}
+
+//================================//
+export function goToPreviousStep(): void {
+    if (step_lock) return;
+
+    STEP_POSITIONS.previous = true;
+}
+
+//================================//
+export function goToNextStep(): void {
+    if (step_lock) return;
+
+    STEP_POSITIONS.next = true;
+}
+
+//================================//
+function processStepPositions(sceneInformation: SceneInformation): void {
+
+    if (!STEP_POSITIONS.next && !STEP_POSITIONS.previous) return;
+
+
+    if (STEP_POSITIONS.next && STEP_POSITIONS.previous)
+    {
+        STEP_POSITIONS.next = false;
+        STEP_POSITIONS.previous = false;
+
+        return;
+    }
+
+    else if(STEP_POSITIONS.next)
+    {
+        sceneInformation.currentStep = (sceneInformation.currentStep + 1) % ANIMATION_STEPS.length;
+        STEP_POSITIONS.next = false; 
+    }
+
+    else if (STEP_POSITIONS.previous)
+    {
+        sceneInformation.currentStep = ((sceneInformation.currentStep - 1 + ANIMATION_STEPS.length) % ANIMATION_STEPS.length);
+        STEP_POSITIONS.previous = false;
+    }
+
+    goToStep(sceneInformation, sceneInformation.currentStep).then(() => {
+        step_lock = false;
+    });
+}
+
+//================================//
+const goToStep = async function(sceneInformation: SceneInformation, index: int) : Promise<void> {
+    
+    console.log(index, sceneInformation.cubeInstances);
+
+    if (index < 0 || index >= ANIMATION_STEPS.length) return;
+    if (!sceneInformation.cubeInstances || sceneInformation.cubeInstances === undefined) return;
+    
+    console.log("Going to step: " + index);
+
+    const step = ANIMATION_STEPS[index];
+    const tokenAtStart = sceneInformation.animationToken ?? 0;
+
+    const isTokenInvalid = () => sceneInformation.animationToken !== tokenAtStart;
+
+    const safeAwait = async (promise: Promise<any>) => {
+        const result = await promise;
+        if (isTokenInvalid()) throw new Error("Reset scene called during animation.");
+        return result;
+    };
+
+    await safeAwait(setTimedCameraPosition(sceneInformation, ANIMATION_PLACEMENTS[index], 500));
+    await safeAwait(setTimedCameraLookAt(sceneInformation, ANIMATION_LOOKATS[index], 500));
+
+    const cubes = sceneInformation.cubeInstances ?? [];
+    cubes.forEach((cube: Mesh) => {
+        cube.isVisible = false;
+    });
+
+    ANIMATION_CUBES[index].forEach((i: int) => {
+        const cube: Mesh | undefined = sceneInformation.cubeInstances ? sceneInformation.cubeInstances[i] : undefined;
+        if (cube) {
+            cube.isVisible = true;
+        }
+    });
+}
