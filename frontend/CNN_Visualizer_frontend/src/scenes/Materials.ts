@@ -1,5 +1,5 @@
 // UnlitMaterial.ts
-import { ShaderMaterial, Effect, Scene, Engine } from "@babylonjs/core";
+import { ShaderMaterial, Effect, Scene} from "@babylonjs/core";
 
 // 1) Register your shaders with Babylon’s Effect manager:
 Effect.ShadersStore["unlitVertexShader"] = `

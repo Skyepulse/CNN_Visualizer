@@ -286,6 +286,8 @@
   const sendCanvasAs28x28Grayscale = () => {
     if (!canvas.value) return
 
+    navigation.value = false
+
     const resizedCanvas = document.createElement('canvas')
     resizedCanvas.width = 28
     resizedCanvas.height = 28

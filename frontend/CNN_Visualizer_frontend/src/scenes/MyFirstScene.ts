@@ -31,6 +31,7 @@ export type CameraMovements = {
 const CAMERA_MOVEMENTS = { goLeft: false, goRight: false, goFront: false, goBack: false};
 const STEP_POSITIONS = {previous: false, next: false}
 let step_lock = false;
+const TEXT_SIZE = 20;
 
 //================================//
 const ANIMATION_PLACEMENTS = [
@@ -81,6 +82,18 @@ const ANIMATION_STEPS = [
 ]
 
 //================================//
+const ANIMATION_TEXT_PLACEMENTS = [
+    {vertical_alignment: GUI.Control.VERTICAL_ALIGNMENT_CENTER, horizontal_alignment: GUI.Control.HORIZONTAL_ALIGNMENT_LEFT, left: 10, top: 0, width: "25%", height: "auto"},
+    {vertical_alignment: GUI.Control.VERTICAL_ALIGNMENT_TOP, horizontal_alignment: GUI.Control.HORIZONTAL_ALIGNMENT_LEFT, left: 10, top: 10, width: "25%", height: "auto"},
+    {vertical_alignment: GUI.Control.VERTICAL_ALIGNMENT_TOP, horizontal_alignment: GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT, left: -10, top: 10, width: "40%", height: "auto"},
+    {vertical_alignment: GUI.Control.VERTICAL_ALIGNMENT_TOP, horizontal_alignment: GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT, left: -10, top: 20, width: "45%", height: "auto"},
+    {vertical_alignment: GUI.Control.VERTICAL_ALIGNMENT_TOP, horizontal_alignment: GUI.Control.HORIZONTAL_ALIGNMENT_CENTER, left: 0, top: 50, width: "50%", height: "auto"},
+    {vertical_alignment: GUI.Control.VERTICAL_ALIGNMENT_TOP, horizontal_alignment: GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT, left: 0, top: 50, width: "60%", height: "auto"},
+    {vertical_alignment: GUI.Control.VERTICAL_ALIGNMENT_CENTER, horizontal_alignment: GUI.Control.HORIZONTAL_ALIGNMENT_LEFT, left: 20, top: 0, width: "25%", height: "auto"},
+    {vertical_alignment: GUI.Control.VERTICAL_ALIGNMENT_BOTTOM, horizontal_alignment: GUI.Control.HORIZONTAL_ALIGNMENT_CENTER, left: 0, top: -20, width: "90%", height: "auto"},
+]
+
+//================================//
 export type SceneInformation = {
     scene?: Scene,
     camera?: FreeCamera,
@@ -93,6 +106,7 @@ export type SceneInformation = {
     wholeMatrix?: Float32Array,
     wholeColors?: Float32Array,
     fullScreenGUI?: GUI.AdvancedDynamicTexture,
+    stepTexts?: GUI.TextBlock[],
     IntroText: GUI.TextBlock,
     currentStep: int
 };
@@ -132,6 +146,7 @@ export const createScene = async function (canvas: HTMLCanvasElement, fpsDisplay
         IntroText: IntroText,
         currentStep: 0,
         cubeInstances: [],
+        stepTexts: [],
     };
     
     resetScene(sceneInformation);
@@ -869,6 +884,8 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
 
     sceneInformation.cubeInstances?.push(final10.cube);
     await assignNewRendersToWholeCube(sceneInformation, final10.cube, final10.matrix, final10.color);
+
+    await generateTexts(sceneInformation);
 };
 
 //================================//
@@ -885,7 +902,15 @@ export const resetScene = async function(sceneInformation: SceneInformation): Pr
         sceneInformation.cubeInstances = [];
     }
 
-    sceneInformation.currentStep = 0;
+    if(sceneInformation.stepTexts)
+    {
+        sceneInformation.stepTexts.forEach((text: GUI.TextBlock) => {
+            if (text) text.dispose();
+        });
+        sceneInformation.stepTexts = [];
+    }
+
+    sceneInformation.currentStep = ANIMATION_STEPS.length - 1;
     STEP_POSITIONS.next = false;
     STEP_POSITIONS.previous = false;
 
@@ -1210,6 +1235,7 @@ function processStepPositions(sceneInformation: SceneInformation): void {
         STEP_POSITIONS.previous = false;
     }
 
+    step_lock = true;
     goToStep(sceneInformation, sceneInformation.currentStep).then(() => {
         step_lock = false;
     });
@@ -1217,13 +1243,14 @@ function processStepPositions(sceneInformation: SceneInformation): void {
 
 //================================//
 const goToStep = async function(sceneInformation: SceneInformation, index: int) : Promise<void> {
-    
-    console.log(index, sceneInformation.cubeInstances);
-
+        
     if (index < 0 || index >= ANIMATION_STEPS.length) return;
     if (!sceneInformation.cubeInstances || sceneInformation.cubeInstances === undefined) return;
     
-    console.log("Going to step: " + index);
+    const texts = sceneInformation.stepTexts ?? [];
+    texts.forEach((text: GUI.TextBlock) => {
+        text.isVisible = false;
+    });
 
     const step = ANIMATION_STEPS[index];
     const tokenAtStart = sceneInformation.animationToken ?? 0;
@@ -1238,6 +1265,11 @@ const goToStep = async function(sceneInformation: SceneInformation, index: int) 
 
     await safeAwait(setTimedCameraPosition(sceneInformation, ANIMATION_PLACEMENTS[index], 400));
     await safeAwait(setTimedCameraLookAt(sceneInformation, ANIMATION_LOOKATS[index], 150));
+
+    const stepText: GUI.TextBlock | undefined = sceneInformation.stepTexts ? sceneInformation.stepTexts[index] : undefined;
+    if (stepText) {
+        stepText.isVisible = true;
+    }
 
     // Should I keep this?
     /*
@@ -1255,4 +1287,36 @@ const goToStep = async function(sceneInformation: SceneInformation, index: int) 
         }
     }
     */
+}
+
+//================================//
+const generateTexts = async function(sceneInformation: SceneInformation,): Promise<void> {
+
+    if (sceneInformation === null || sceneInformation.scene === undefined || sceneInformation.fullScreenGUI === undefined) return;
+
+    var fontData = await (await fetch("https://assets.babylonjs.com/fonts/Droid Sans_Regular.json")).json();
+
+    sceneInformation.stepTexts = [];
+    ANIMATION_STEPS.forEach((step) => {
+        const text: GUI.TextBlock = new GUI.TextBlock(`stepText_${step.pose}`, step.text);
+        text.fontFamily = fontData.family;
+        text.textWrapping = true;
+        text.resizeToFit = true;
+        text.height = "auto";
+        text.color = "white";
+        text.fontSize = TEXT_SIZE;
+        
+        text.top = ANIMATION_TEXT_PLACEMENTS[step.pose].top;
+        text.left = ANIMATION_TEXT_PLACEMENTS[step.pose].left;
+        text.verticalAlignment = ANIMATION_TEXT_PLACEMENTS[step.pose].vertical_alignment;
+        text.horizontalAlignment = ANIMATION_TEXT_PLACEMENTS[step.pose].horizontal_alignment;
+        text.width = ANIMATION_TEXT_PLACEMENTS[step.pose].width;
+        text.height = ANIMATION_TEXT_PLACEMENTS[step.pose].height;
+        
+        sceneInformation.fullScreenGUI?.addControl(text);
+        sceneInformation.stepTexts?.push(text);
+
+        const isVisible = (step.pose === ANIMATION_STEPS.length - 1) ? true : false;
+        text.isVisible = isVisible;
+    });
 }
