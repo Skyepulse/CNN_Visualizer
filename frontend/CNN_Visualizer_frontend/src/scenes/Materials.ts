@@ -1,5 +1,5 @@
 // UnlitMaterial.ts
-import { ShaderMaterial, Effect, Scene } from "@babylonjs/core";
+import { ShaderMaterial, Effect, Scene, Engine } from "@babylonjs/core";
 
 // 1) Register your shaders with Babylon’s Effect manager:
 Effect.ShadersStore["unlitVertexShader"] = `
@@ -42,7 +42,7 @@ Effect.ShadersStore["unlitFragmentShader"] = `
 
 // 2) Factory that builds the material:
 export function createUnlitMaterial(scene: Scene): ShaderMaterial {
-    return new ShaderMaterial(
+    const material = new ShaderMaterial(
         "unlitThinInstanceMaterial",
         scene,
         {
@@ -51,7 +51,9 @@ export function createUnlitMaterial(scene: Scene): ShaderMaterial {
         },
         {
             attributes: ["position", "normal", "uv", "customColor"],
-            uniforms: ["world", "worldView", "worldViewProjection", "view", "projection", "viewProjection"]
+            uniforms: ["world", "worldView", "worldViewProjection", "view", "projection", "viewProjection"],
         }
     );
+
+    return material;
 }

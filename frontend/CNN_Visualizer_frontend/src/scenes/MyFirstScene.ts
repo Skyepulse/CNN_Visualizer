@@ -11,6 +11,7 @@ import {
     Matrix,
     Mesh,
     type int,
+    ShaderMaterial,
 } from '@babylonjs/core';
 
 import * as GUI from '@babylonjs/gui';
@@ -56,15 +57,15 @@ const ANIMATION_LOOKATS = [
 ]
 
 //================================//
-const ANIMATION_CUBES = [
-    [1],
-    [2],
-    [3],
-    [4],
-    [5],
-    [6],
-    [7, 8],
-    [9]
+const ANIMATION_CUBES = [   // From -> To
+    [1, 2],
+    [2, 8],
+    [8, 14],
+    [14, 30],
+    [30, 46],
+    [46, 47],
+    [47, 49],
+    [49, 50]
 ]
 
 //================================//
@@ -185,7 +186,9 @@ export const addVisual = async function(sceneInformation: SceneInformation, visu
     baseCube.thinInstanceSetBuffer("matrix", matrixData, 16);
     baseCube.thinInstanceSetBuffer("customColor", colors, 4);
 
-    baseCube.material = createUnlitMaterial(sceneInformation.scene);
+    const material = createUnlitMaterial(sceneInformation.scene) as ShaderMaterial;
+
+    baseCube.material = material;
     numInstances++;
 
     return {matrix: matrixData, color: colors, cube: baseCube};
@@ -248,7 +251,9 @@ export const addVisualFromInput = async function(sceneInformation: SceneInformat
         finalColorsData.set([gray, gray, gray, 1.0], i * 4); // RGBA format
     }
 
-    baseCube.material = createUnlitMaterial(sceneInformation.scene);
+    const material = createUnlitMaterial(sceneInformation.scene) as ShaderMaterial;
+
+    baseCube.material = material;
     baseCube.thinInstanceSetBuffer("matrix", fromWholeMatrix, 16);
     baseCube.thinInstanceSetBuffer("customColor", fromWholeColors, 4);
 
@@ -339,7 +344,9 @@ export const addVisualFromSubsampling = async function(sceneInformation: SceneIn
         finalColorsData.set([gray, gray, gray, 1.0], i * 4); // RGBA format
     }
     
-    baseCube.material = createUnlitMaterial(sceneInformation.scene);
+    const material = createUnlitMaterial(sceneInformation.scene) as ShaderMaterial;
+
+    baseCube.material = material;
     baseCube.thinInstanceSetBuffer("matrix", fromMatrix, 16);
     baseCube.thinInstanceSetBuffer("customColor", fromColors, 4);
 
@@ -459,7 +466,9 @@ export const addVisualFromConvolution = async function(sceneInformation: SceneIn
     const currentToken = sceneInformation.animationToken ?? 0;
     const globalStartTime = performance.now();
 
-    baseCube.material = createUnlitMaterial(sceneInformation.scene);
+    const material = createUnlitMaterial(sceneInformation.scene) as ShaderMaterial;
+
+    baseCube.material = material;
     baseCube.thinInstanceSetBuffer("matrix", fromWholeMatrix, 16);
     baseCube.thinInstanceSetBuffer("customColor", fromWholeColors, 4);
 
@@ -570,7 +579,9 @@ export const addVisualFromFullConnectedLayer = async function(sceneInformation: 
     const currentToken = sceneInformation.animationToken ?? 0;
     const globalStartTime = performance.now();
 
-    baseCube.material = createUnlitMaterial(sceneInformation.scene);
+    const material = createUnlitMaterial(sceneInformation.scene) as ShaderMaterial;
+
+    baseCube.material = material;
     baseCube.thinInstanceSetBuffer("matrix", fromWholeMatrix, 16);
     baseCube.thinInstanceSetBuffer("customColor", fromWholeColors, 4);
 
@@ -917,7 +928,9 @@ export const resetScene = async function(sceneInformation: SceneInformation): Pr
 
     sceneInformation.wholeRenderCube = MeshBuilder.CreateBox("wholeRenderCube", { size: 0.2 }, sceneInformation.scene);
     sceneInformation.wholeRenderCube.position = new Vector3(0, 0, 0);
-    sceneInformation.wholeRenderCube.material = createUnlitMaterial(sceneInformation.scene);
+    const material: ShaderMaterial = createUnlitMaterial(sceneInformation.scene);
+
+    sceneInformation.wholeRenderCube.material = material;
     sceneInformation.wholeRenderCube.isVisible = false;
 
     sceneInformation.cubeInstances = [];
@@ -1006,7 +1019,6 @@ export const setTimedCameraPosition = async function(sceneInformation: SceneInfo
         requestAnimationFrame(animation);
     });
 };
-
 
 //================================//
 export const wait = async function(ms: number): Promise<void> {
@@ -1224,18 +1236,23 @@ const goToStep = async function(sceneInformation: SceneInformation, index: int) 
         return result;
     };
 
-    await safeAwait(setTimedCameraPosition(sceneInformation, ANIMATION_PLACEMENTS[index], 500));
-    await safeAwait(setTimedCameraLookAt(sceneInformation, ANIMATION_LOOKATS[index], 500));
+    await safeAwait(setTimedCameraPosition(sceneInformation, ANIMATION_PLACEMENTS[index], 400));
+    await safeAwait(setTimedCameraLookAt(sceneInformation, ANIMATION_LOOKATS[index], 150));
 
+    // Should I keep this?
+    /*
     const cubes = sceneInformation.cubeInstances ?? [];
     cubes.forEach((cube: Mesh) => {
         cube.isVisible = false;
     });
 
-    ANIMATION_CUBES[index].forEach((i: int) => {
+    const stepCubes = ANIMATION_CUBES[index];
+    for (let i = stepCubes[0]; i < stepCubes[1]; i++)
+    {
         const cube: Mesh | undefined = sceneInformation.cubeInstances ? sceneInformation.cubeInstances[i] : undefined;
         if (cube) {
             cube.isVisible = true;
         }
-    });
+    }
+    */
 }
