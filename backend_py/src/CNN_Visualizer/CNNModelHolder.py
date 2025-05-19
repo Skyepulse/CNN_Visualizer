@@ -29,7 +29,7 @@ class LeNetLoader:
         return self.model
     
     #==========================#
-    async def predict(self, image: torch.Tensor):
+    def predict(self, image: torch.Tensor):
         """
         Perform inference on a single MNIST image tensor.
 

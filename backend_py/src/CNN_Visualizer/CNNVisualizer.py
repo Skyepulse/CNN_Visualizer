@@ -1,5 +1,6 @@
 from Application.application import MyServer
 from CNN_Visualizer.CNNModelHolder import LeNetLoader
+from Helpers.ThreadPools import run_in_executor
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from datetime import datetime
 import base64
@@ -32,7 +33,14 @@ class CNNServer(MyServer):
                 print("Simple message received: ", data, " from ", websocket.client.port)
                 pass
             case "mnist-image":
-                await self.handle_mnist_image(data, websocket)
+                #decode the data JSON:
+                data = json.loads(data)
+
+                # Assert we have 'data', 'name' and 'real' keys
+                if "data" not in data or "name" not in data or "real" not in data:
+                    print(Fore.RED, "Invalid MNIST image message received. Missing keys in data: ", data, " from ", websocket.client.port, Style.RESET_ALL)
+                    return
+                await self.handle_mnist_image(data['data'], websocket, data['real'], data['name'])
                 pass
             case _:
                 # Default case
@@ -40,7 +48,7 @@ class CNNServer(MyServer):
                 pass
     
     #==========================#
-    async def handle_mnist_image(self, data: str, websocket: WebSocket):
+    async def handle_mnist_image(self, data: str, websocket: WebSocket, real: int = -1, client_name: str = ""):
         # Handle the MNIST image data here        
         image_data = base64.b64decode(data)
         os.makedirs("mnist_images", exist_ok=True)
@@ -51,17 +59,20 @@ class CNNServer(MyServer):
         if os.path.exists(filepath):
             os.remove(filepath)
 
-        with open(filepath, "wb") as image_file:
-            image_file.write(image_data)
+        #
+        #with open(filepath, "wb") as image_file:
+        #   image_file.write(image_data)
 
         self.images[websocket] = image_data
-        self.image_filepaths[websocket] = filepath
+        #self.image_filepaths[websocket] = filepath
         
         await self.sendMessage(websocket, "mnist-image", data)
 
         # Perform inference
         image_tensor = await self.modelHolder.data_to_tensor(image_data)
-        prediction, visuals = await self.modelHolder.predict(image_tensor)
+
+        # Thread pool for prediction
+        prediction, visuals = await run_in_executor(self.modelHolder.predict, image_tensor)
 
         print(Fore.GREEN, f"Prediction for image from {websocket.client.port}: {prediction}", Style.RESET_ALL)
 
@@ -71,6 +82,19 @@ class CNNServer(MyServer):
                 await self.sendMessage(websocket, "mnist-prediction-error", "error")
             case _:
                 await self.package_and_send_prediction(websocket, prediction, visuals)
+        
+        if real != -1:
+            
+            if client_name == "":
+                client_name = f"Client {websocket.client.port}"
+            # Save the image to the file system
+            await self.db.insert_and_cleanup_image(
+                image_data=image_data,
+                prediction=prediction,
+                real=real,  # Placeholder for the real label
+                client_port=websocket.client.port,
+                client_name=client_name
+            )
 
     #==========================#
     async def on_connect(self, websocket: WebSocket):

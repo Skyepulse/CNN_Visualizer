@@ -2,10 +2,11 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
+from Application.database import DatabaseEndpoint
 import uvicorn
 import json
 from abc import ABC, abstractmethod
-
+from Config.config import DB_CONFIG
 
 #==========================#
 class MyServer(FastAPI, ABC):
@@ -31,6 +32,20 @@ class MyServer(FastAPI, ABC):
 
         self.add_api_route("/status", self.status_handler, methods=["GET"])
         self.add_api_route("/", self.hello_handler, methods=["GET"])
+
+        # Init DB
+        self.db = DatabaseEndpoint(
+            host=DB_CONFIG["host"],
+            port=DB_CONFIG["port"],
+            user=DB_CONFIG["user"],
+            password=DB_CONFIG["password"],
+            dbname=DB_CONFIG["dbname"]
+        )
+        
+        @self.on_event("startup")
+        async def startup_event():
+            await self.db.init_db()
+            print("[Startup] Database connection pool initialized.")
 
     #==========================#
     async def websocket_endpoint(self, websocket: WebSocket):

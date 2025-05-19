@@ -223,7 +223,6 @@
     }
   }
 
-
   //================================//
   const draw = (e: MouseEvent): void => {
     if (!isDrawing.value || !ctx.value) return
@@ -316,7 +315,16 @@
     const base64String = resizedCanvas.toDataURL('image/png')
     const base64Data = base64String.split(',')[1]
 
-    sendMessage('mnist-image', base64Data)
+    const randomNumber = Math.floor(Math.random() * 1000000)
+    const randomClient = `client-${randomNumber}`
+
+    const sendJSON = {
+      data: base64Data,
+      name: randomClient,
+      real: 1
+    }
+
+    sendMessage("mnist-image", JSON.stringify(sendJSON))
   }
 
   //================================//
@@ -353,7 +361,6 @@
 
         const decodedVisuals: Visual[] = decodedData.visuals
         const transformedPredictions = decodedVisuals[decodedVisuals.length - 1].data;
-        console.log('Final predictions:', transformedPredictions)
 
         const originalImage: Visual = decodedVisuals[0]
         outputImageSource.value = await saveVisualAsPNG(originalImage)

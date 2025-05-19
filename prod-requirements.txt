@@ -5,3 +5,7 @@ fastapi
 uvicorn[standard]
 colorama
 pillow
+pytest
+pytest-asyncio
+asyncpg
+python-dotenv
