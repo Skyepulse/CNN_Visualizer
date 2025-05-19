@@ -169,6 +169,7 @@ class LeNet(nn.Module):
         if save_visuals:
             fc3_vis = out[0].detach().cpu().numpy().reshape(1, 10)
             visuals.append(self.prepare_visuals("FC3 Output (10 logits)", fc3_vis, 10, 1))
+            visuals.append(self.prepare_final_predictions("FC3 Output (10 probabilities) in percentage", fc3_vis))
 
         self.visuals = visuals
 
@@ -194,4 +195,25 @@ class LeNet(nn.Module):
             "width": w,
             "height": h,
             "data": arr.flatten().tolist(),
+        }
+    
+    def prepare_final_predictions(self, name, array):
+        array = np.array(array, dtype=np.float64)
+        
+        # Correct softmax calculation with numerical stability
+        shifted = array - np.max(array)
+        exp_vals = np.exp(shifted)
+        softmax = exp_vals / np.sum(exp_vals)
+
+        # Convert to percentages
+        percentages = softmax * 100
+        rounded = np.round(percentages, 2)
+
+        arr = rounded.flatten().tolist()
+
+        return {
+            "title": name,
+            "width": 10,
+            "height": 1,
+            "data": arr,
         }

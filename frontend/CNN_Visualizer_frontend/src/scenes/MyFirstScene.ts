@@ -10,14 +10,20 @@ import {
     Light,
     Matrix,
     Mesh,
+    Color3,
     type int,
     ShaderMaterial,
+    StandardMaterial,
+    type float,
 } from '@babylonjs/core';
 
 import * as GUI from '@babylonjs/gui';
 import type { Visual } from '@src/components/DrawingCanvas.vue';
 import "@babylonjs/inspector";
 import { createUnlitMaterial } from "@src/scenes/Materials";
+
+//Earcut for MeshBuilder
+import earcut from 'earcut';
 
 //================================//
 export type CameraMovements = {
@@ -32,6 +38,8 @@ const CAMERA_MOVEMENTS = { goLeft: false, goRight: false, goFront: false, goBack
 const STEP_POSITIONS = {previous: false, next: false}
 let step_lock = false;
 const TEXT_SIZE = 20;
+const fontData = await (await fetch("https://assets.babylonjs.com/fonts/Droid Sans_Regular.json")).json();
+
 
 //================================//
 const ANIMATION_PLACEMENTS = [
@@ -107,6 +115,7 @@ export type SceneInformation = {
     wholeColors?: Float32Array,
     fullScreenGUI?: GUI.AdvancedDynamicTexture,
     stepTexts?: GUI.TextBlock[],
+    predictionMeshes?: Mesh[],
     IntroText: GUI.TextBlock,
     currentStep: int
 };
@@ -147,6 +156,7 @@ export const createScene = async function (canvas: HTMLCanvasElement, fpsDisplay
         currentStep: 0,
         cubeInstances: [],
         stepTexts: [],
+        predictionMeshes: [],
     };
     
     resetScene(sceneInformation);
@@ -709,7 +719,7 @@ const getKernelIndexes = function(kernelIndex: number, inWidth: number, inInputs
 };
 
 //================================//
-export const launchMnistAnimation = async function(sceneInformation: SceneInformation, visuals: Visual[]): Promise<void> 
+export const launchMnistAnimation = async function(sceneInformation: SceneInformation, visuals: Visual[], finalPredictions: float[]): Promise<void> 
 {
     if (sceneInformation === null) return;
     if (!sceneInformation.engine) return;
@@ -792,7 +802,6 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
         await assignNewRendersToWholeCube(sceneInformation, visualInfo.cube, visualInfo.matrix, visualInfo.color);
     }
     
-
     //[4] CONV LAYER 2
     const convLayer2Infos: AddedVisualInfo[] = new Array(16);
     for(let i = 0; i < 16; i++)
@@ -879,14 +888,98 @@ export const launchMnistAnimation = async function(sceneInformation: SceneInform
     await safeAwait(setTimedCameraPosition(sceneInformation, ANIMATION_PLACEMENTS[7], 1000));
     await safeAwait(setTimedCameraLookAt(sceneInformation, ANIMATION_LOOKATS[7], 1000));
 
+    // Final prediction
     const final10 = await safeAwait(addVisualFromFullConnectedLayer(sceneInformation, visuals[48], new Vector3(0,0,-58), [fullConnectedLayer3Infos], 750, 1.0, 1));
-    await safeAwait(wait(7500));
+    
+    const finalPredCopy = new Float32Array(finalPredictions);
+    const sortedPreds = [...finalPredCopy].sort((a, b) => b - a);
+    const topOne = finalPredCopy.indexOf(Math.max(...finalPredCopy));
+    const topTwo = finalPredCopy.indexOf(sortedPreds[1]);
+    const topThree = finalPredCopy.indexOf(sortedPreds[2]);
+
+    for (let i = 0; i < 10; i++)
+    {
+        const startPos = new Vector3(-5 + (i * 1.15), 0, -58)
+        const endPos = new Vector3(-5 + (i * 1.15), 1, -58);
+        const startScale = 0.2;
+        const endScale = 1;
+        const time = 750;
+
+        const number = finalPredictions[i];
+        const color = (i === topOne) ? 'gold' : (i === topTwo) ? 'silver' : (i === topThree) ? 'orange' : 'white';
+
+        await safeAwait(animatePredictionNumber(sceneInformation, number, startPos, endPos, startScale, endScale, time, color));
+    }
 
     sceneInformation.cubeInstances?.push(final10.cube);
     await assignNewRendersToWholeCube(sceneInformation, final10.cube, final10.matrix, final10.color);
 
     await generateTexts(sceneInformation);
 };
+
+//================================//
+const getColorFromName = (colorName: string): string => {
+    const colorMap: { [key: string]: string } = {
+        'gold': '#FFDB32',
+        'silver': '#C0C8C0',
+        'orange': '#FFA532',
+        'white': '#3c4ce9'
+    };
+    return colorMap[colorName] || '#3c4ce9';
+};
+
+//================================//
+export const animatePredictionNumber = async function(sceneInformation: SceneInformation, number: number, startPosition: Vector3, endPosition: Vector3, startScale: float, endScale: float, time: float, color: string = 'white'): Promise<void>
+{
+    if (sceneInformation === null || sceneInformation.scene === undefined || sceneInformation.predictionMeshes == undefined || sceneInformation.camera === undefined) return;
+
+    const text: Mesh | null = MeshBuilder.CreateText(`text_${sceneInformation.predictionMeshes.length}`, `${number}%`, fontData, {size: 0.25, resolution: 1, depth: 0.1}, sceneInformation.scene, earcut);
+    if (!text) return;
+
+    text.position.set(startPosition.x, startPosition.y, startPosition.z);
+    text.lookAt(sceneInformation.camera.position);
+    text.rotate(Vector3.Up(), Math.PI);
+
+    text.scaling.set(startScale, startScale, startScale);
+    text.setEnabled(true);
+
+    // Create Standard Material for the text
+    const material = new StandardMaterial(`textMaterial_${sceneInformation.predictionMeshes.length}`, sceneInformation.scene);
+    material.diffuseColor = Color3.FromHexString(getColorFromName(color));
+
+    text.material = material;
+
+    sceneInformation.predictionMeshes.push(text);
+
+    const currentToken = sceneInformation.animationToken ?? 0;
+    const startTime = performance.now();
+
+    return new Promise((resolve) => {
+        const animation = () => {
+            if (sceneInformation.animationToken !== currentToken) return resolve();
+
+            const now = performance.now();
+            const elapsed = now - startTime;
+
+            const t = Math.min(elapsed / time, 1);
+
+            text!.position.x = startPosition.x + (endPosition.x - startPosition.x) * t;
+            text!.position.y = startPosition.y + (endPosition.y - startPosition.y) * t;
+            text!.position.z = startPosition.z + (endPosition.z - startPosition.z) * t;
+
+            text!.scaling.x = startScale + (endScale - startScale) * t;
+            text!.scaling.y = startScale + (endScale - startScale) * t;
+            text!.scaling.z = startScale + (endScale - startScale) * t;
+
+            if (t < 1) {
+                requestAnimationFrame(animation);
+            } else {
+                resolve();
+            }
+        };
+        requestAnimationFrame(animation);
+    });
+}
 
 //================================//
 export const resetScene = async function(sceneInformation: SceneInformation): Promise<void>
@@ -908,6 +1001,14 @@ export const resetScene = async function(sceneInformation: SceneInformation): Pr
             if (text) text.dispose();
         });
         sceneInformation.stepTexts = [];
+    }
+
+    if(sceneInformation.predictionMeshes)
+    {
+        sceneInformation.predictionMeshes.forEach((mesh: Mesh) => {
+            if (mesh) mesh.dispose();
+        });
+        sceneInformation.predictionMeshes = [];
     }
 
     sceneInformation.currentStep = ANIMATION_STEPS.length - 1;
@@ -933,8 +1034,8 @@ export const resetScene = async function(sceneInformation: SceneInformation): Pr
     sceneInformation.camera.speed = 0.5; // Adjust the speed as needed
 
     const newLight = new DirectionalLight("light1", new Vector3(0, 0, 1), sceneInformation.scene);
-    newLight.intensity = 0.5;
-    newLight.position = new Vector3(0, 0, -10);
+    newLight.intensity = 1.0;
+    newLight.position = new Vector3(0, 0, -100);
 
     sceneInformation.light = newLight;
 
@@ -964,7 +1065,6 @@ export const resetScene = async function(sceneInformation: SceneInformation): Pr
     sceneInformation.fullScreenGUI = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, sceneInformation.scene);
     
     sceneInformation.IntroText.fontSize = 40 *  window.outerWidth / 1920;
-    console.log(sceneInformation.IntroText.fontSize);
     sceneInformation.fullScreenGUI.addControl(sceneInformation.IntroText);
     sceneInformation.IntroText.isVisible = true;
     
@@ -1294,12 +1394,9 @@ const generateTexts = async function(sceneInformation: SceneInformation,): Promi
 
     if (sceneInformation === null || sceneInformation.scene === undefined || sceneInformation.fullScreenGUI === undefined) return;
 
-    var fontData = await (await fetch("https://assets.babylonjs.com/fonts/Droid Sans_Regular.json")).json();
-
     sceneInformation.stepTexts = [];
     ANIMATION_STEPS.forEach((step) => {
         const text: GUI.TextBlock = new GUI.TextBlock(`stepText_${step.pose}`, step.text);
-        text.fontFamily = fontData.family;
         text.textWrapping = true;
         text.resizeToFit = true;
         text.height = "auto";

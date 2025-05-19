@@ -272,8 +272,6 @@
   const drawInitialText = () => {
     if (!ctx.value || !canvas.value) return
 
-    console.log('Drawing initial text on canvas')
-
     const canvasWidth = canvas.value.width
 
     ctx.value.font = `${(canvasWidth * 26 / 400)}px system-ui`
@@ -354,6 +352,8 @@
         const prediction = decodedData.prediction
 
         const decodedVisuals: Visual[] = decodedData.visuals
+        const transformedPredictions = decodedVisuals[decodedVisuals.length - 1].data;
+        console.log('Final predictions:', transformedPredictions)
 
         const originalImage: Visual = decodedVisuals[0]
         outputImageSource.value = await saveVisualAsPNG(originalImage)
@@ -362,7 +362,7 @@
         if(bbCanvasRef.value?.getSceneInformation() !== undefined && bbCanvasRef.value?.getSceneInformation() !== null){
           const sceneInfo: SceneInformation = bbCanvasRef.value.getSceneInformation() as SceneInformation
           
-          await launchMnistAnimation(sceneInfo, decodedVisuals).then(() => {
+          await launchMnistAnimation(sceneInfo, decodedVisuals, transformedPredictions).then(() => {
             navigation.value = true;
           });
 

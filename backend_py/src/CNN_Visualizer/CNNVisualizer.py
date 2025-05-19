@@ -89,7 +89,9 @@ class CNNServer(MyServer):
 
     #==========================#
     async def package_and_send_prediction(self, websocket: WebSocket, prediction: int, visuals: list):
-        for visual in visuals:
+        for index, visual in enumerate(visuals):
+            if index == len(visuals) - 1:
+                continue
             visual["data"] = [int(v) for v in visual["data"]] # ensure integers
 
         payload = {
