@@ -1,6 +1,7 @@
 import { ref } from 'vue';
 
 const socket = ref<WebSocket | null>(null);
+const apiUrl = import.meta.env.VITE_API_URL;
 const isConnected = ref(false);
 const messages = ref<{ type: string, data: string }[]>([]);
 
@@ -44,9 +45,18 @@ export function useWebSocket(url: string = '') {
         }
     }
 
+    async function fetchAPIRoute(route: string) {
+        const response = await fetch(`${apiUrl}/${route}`);
+        if (!response.ok) {
+            throw new Error(`Error fetching ${route}: ${response.statusText}`);
+        }
+        return response.json();
+    }
+
     return {
         connect,
         sendMessage,
+        fetchAPIRoute,
         isConnected,
         messages,
     };

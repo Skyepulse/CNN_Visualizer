@@ -5,7 +5,7 @@
     import { onMounted } from 'vue'
     import { useWebSocket } from '@src/composables/useWebSocket'
 
-    const { connect } = useWebSocket('ws://localhost:5000/ws')
+    const { connect } = useWebSocket(import.meta.env.VITE_BACKEND_URL)
 
     onMounted(() => {
         connect()

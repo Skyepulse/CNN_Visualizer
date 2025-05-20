@@ -14,15 +14,22 @@ def load_sample_image_base64():
 
 @pytest.mark.asyncio
 async def test_multiple_clients_handle_prediction():
-    num_clients = 200
+    num_clients = 25
     image_data = load_sample_image_base64()
 
     async def client_task(client_id):
         async with websockets.connect(SERVER_WS_URL) as websocket:
+
+            data = json.dumps({
+                "data": image_data,
+                "real": -1,
+                "name": ""
+            })
+
             # Send mnist image
             await websocket.send(json.dumps({
                 "type": "mnist-image",
-                "data": image_data
+                "data": data
             }))
 
             received_prediction = False

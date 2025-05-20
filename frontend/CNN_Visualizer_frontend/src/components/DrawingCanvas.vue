@@ -127,7 +127,7 @@
   import type { SceneInformation } from '@src/scenes/MyFirstScene'
 
   //================================//
-  const { sendMessage, messages } = useWebSocket()
+  const { sendMessage, fetchAPIRoute, messages } = useWebSocket()
 
   //================================//
   export type Visual = {
@@ -152,8 +152,6 @@
   const bbCanvasRef = ref<InstanceType<typeof BabylonCanvas> | null>(null)
 
   const navigation = ref<boolean | null>(null)
-  const leftA = ref<HTMLButtonElement | null>(null)
-  const rightA = ref<HTMLButtonElement | null>(null)
 
   //================================//
   onMounted(() => {
@@ -325,13 +323,6 @@
     }
 
     sendMessage("mnist-image", JSON.stringify(sendJSON))
-  }
-
-  //================================//
-  const saveImage = (): void => {
-    if (!canvas.value) return
-
-    sendCanvasAs28x28Grayscale()
   }
 
   //================================//

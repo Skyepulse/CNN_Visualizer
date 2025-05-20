@@ -2,12 +2,14 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from Application.database import DatabaseEndpoint
 import uvicorn
 import json
 from abc import ABC, abstractmethod
 from Config.config import DB_CONFIG
+import base64
 
 #==========================#
 @asynccontextmanager
@@ -42,6 +44,7 @@ class MyServer(FastAPI, ABC):
 
         self.add_api_route("/status", self.status_handler, methods=["GET"])
         self.add_api_route("/", self.hello_handler, methods=["GET"])
+        self.add_api_route("/images", self.images_handler, methods=["GET"])
 
         # Init DB
         self.db = DatabaseEndpoint(
@@ -49,7 +52,8 @@ class MyServer(FastAPI, ABC):
             port=DB_CONFIG["port"],
             user=DB_CONFIG["user"],
             password=DB_CONFIG["password"],
-            dbname=DB_CONFIG["dbname"]
+            dbname=DB_CONFIG["dbname"],
+            max_images=20
         )
 
     #==========================#
@@ -102,6 +106,32 @@ class MyServer(FastAPI, ABC):
     #==========================#
     async def hello_handler(self):
         return PlainTextResponse("hello world")
+    
+    #==========================#
+    async def images_handler(self):
+        rows = await self.db.get_images(self.db.max_images)
+        
+        images = []
+
+        for row in rows:
+            image_data = row["image_data"]
+            prediction = row["prediction"]
+            real = row["real"]
+            client_name = row["client_name"]
+
+            image_base64 = base64.b64encode(image_data).decode("utf-8")
+
+            images.append({
+                "image_data": image_base64,
+                "prediction": prediction,
+                "real": real,
+                "client_name": client_name
+            })
+        
+        if not images:
+            return JSONResponse(content={"message": "No images found."})
+
+        return JSONResponse(content=images)
     
     #==========================#
     def run(self):
