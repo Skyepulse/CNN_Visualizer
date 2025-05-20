@@ -115,6 +115,8 @@
                     </div>
                 </div>
             </div>
+            <BackendImages>
+            </BackendImages>
         </div>
     </div>
 </template>
@@ -125,6 +127,7 @@
   import BabylonCanvas from './babylonCanvas.vue'
   import { launchMnistAnimation, resetScene, goToNextStep, goToPreviousStep } from '@src/scenes/MyFirstScene'
   import type { SceneInformation } from '@src/scenes/MyFirstScene'
+  import BackendImages from '@src/components/BackendImages.vue'
 
   //================================//
   const { sendMessage, fetchAPIRoute, messages } = useWebSocket()

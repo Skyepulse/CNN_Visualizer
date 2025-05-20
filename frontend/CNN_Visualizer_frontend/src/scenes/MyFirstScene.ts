@@ -1352,7 +1352,6 @@ const goToStep = async function(sceneInformation: SceneInformation, index: int) 
         text.isVisible = false;
     });
 
-    const step = ANIMATION_STEPS[index];
     const tokenAtStart = sceneInformation.animationToken ?? 0;
 
     const isTokenInvalid = () => sceneInformation.animationToken !== tokenAtStart;

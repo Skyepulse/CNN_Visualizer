@@ -2,6 +2,7 @@ import { ref } from 'vue';
 
 const socket = ref<WebSocket | null>(null);
 const apiUrl = import.meta.env.VITE_API_URL;
+console.log("API URL:", apiUrl);
 const isConnected = ref(false);
 const messages = ref<{ type: string, data: string }[]>([]);
 
