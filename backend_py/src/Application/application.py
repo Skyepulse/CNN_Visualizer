@@ -2,6 +2,7 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
+from contextlib import asynccontextmanager
 from Application.database import DatabaseEndpoint
 import uvicorn
 import json
@@ -9,11 +10,20 @@ from abc import ABC, abstractmethod
 from Config.config import DB_CONFIG
 
 #==========================#
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("[Startup] Initializing database connection pool...")
+    await app.db.init_db()
+    print("[Startup] Database connection pool initialized.")
+    yield
+    print("[Shutdown] Cleaning up...")  # Optional
+
+#==========================#
 class MyServer(FastAPI, ABC):
 
     #==========================#
     def __init__(self, port: int = 5000):
-        super().__init__()
+        super().__init__(lifespan=lifespan)
         self.add_middleware(
             CORSMiddleware,
             allow_origins=["*"],
@@ -41,11 +51,6 @@ class MyServer(FastAPI, ABC):
             password=DB_CONFIG["password"],
             dbname=DB_CONFIG["dbname"]
         )
-        
-        @self.on_event("startup")
-        async def startup_event():
-            await self.db.init_db()
-            print("[Startup] Database connection pool initialized.")
 
     #==========================#
     async def websocket_endpoint(self, websocket: WebSocket):
