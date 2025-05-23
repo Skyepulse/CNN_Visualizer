@@ -35,7 +35,7 @@
               ref="bbCanvasRef"
             >
             </BabylonCanvas>
-            <div class="flex justify-center flex-wrap">
+            <div class="flex justify-center flex-wrap mt-3 mb-3">
                 <div class="flex m-2" v-if ="navigation">
                     <button class="text-base rounded-r-none  hover:scale-110 focus:outline-none flex justify-center px-4 py-2 rounded font-bold cursor-pointer 
                     hover:bg-teal-200  

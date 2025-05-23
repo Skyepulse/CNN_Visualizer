@@ -1,7 +1,7 @@
 <template>
     <canvas 
         ref="bjsCanvas" :width= width :height= height 
-        class="border-2 border-gray-300 rounded bg-amber-50"
+        class="border-2 border-gray-300 rounded m-0"
     ></canvas>
 </template>
 
