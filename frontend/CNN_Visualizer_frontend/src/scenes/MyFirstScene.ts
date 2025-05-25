@@ -142,7 +142,7 @@ export const createScene = async function (canvas: HTMLCanvasElement, fpsDisplay
     }
 
     const IntroText = new GUI.TextBlock("IntroText");
-    IntroText.text = "This is an animated visualizer of the inner workings of a CNN model for MNIST digit recognition. \n\n Draw a number and press Send to see all steps in the model's Inference process and the final prediction!";
+    IntroText.text = "This is an animated visualizer of the inner workings of a CNN model for MNIST digit recognition. \n\n Draw a number and press Send to see all steps in the model's Inference process and the final prediction! \n\n If you also input the real number you tried to draw, your image will be saved for other users to test too!";
     IntroText.color = "white";
     IntroText.textWrapping = true;
     IntroText.resizeToFit = true;
@@ -1336,6 +1336,7 @@ function processStepPositions(sceneInformation: SceneInformation): void {
     }
 
     step_lock = true;
+    
     goToStep(sceneInformation, sceneInformation.currentStep).then(() => {
         step_lock = false;
     });

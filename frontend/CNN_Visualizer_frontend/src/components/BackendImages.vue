@@ -1,11 +1,11 @@
 <template>
-    <h1 class="text-center font-bold p-0 mb-1 bg-gray-200 text-black rounded rounded-bl-none rounded-br-none">... Or select one of the other user's images!</h1>
-    <Carousel v-bind="carouselConfig">
+    <h1 class="text-center font-bold p-0 mb-1 bg-gray-200 text-black rounded rounded-bl-none rounded-br-none" v-if="images">... Or select one of the other user's images!</h1>
+    <Carousel v-bind="carouselConfig" v-if="images">
         <Slide v-for="({ image_data, prediction, real }, index) in images" :key="index">
             <div class="carousel__item h-25">
                 <MnistImage
                     :imgSrc="`data:image/png;base64,${image_data}`"
-                    :text="prediction"
+                    :text="real"
                     :isCorrect="prediction == real"
                 />
             </div>
@@ -23,18 +23,17 @@
     import 'vue3-carousel/carousel.css'
     import { Carousel, Slide} from 'vue3-carousel'
 
-    const carouselConfig = {
-        itemsToShow: 10,
-        autoplay: 1000,
-        wrapAround: true,
-        mouseWheel: true,
-        pauseAutoplayOnHover: true,
-    }
-
     const { fetchAPIRoute } = useWebSocket()
 
     //================================//
-    const images = ref<ImageData[] | null>(null)
+    const images = ref<ImageData[]>([])
+    const carouselConfig = ref<CarouselConfig>({
+        itemsToShow: 0,
+        autoplay: 0,
+        wrapAround: false,
+        mouseWheel: false,
+        pauseAutoplayOnHover: false
+    })
 
     //================================//
     interface ImageData {
@@ -45,11 +44,19 @@
     }
 
     //================================//
+    interface CarouselConfig {
+        itemsToShow: number
+        autoplay: number
+        wrapAround: boolean
+        mouseWheel: boolean
+        pauseAutoplayOnHover: boolean
+    }
+
+    //================================//
     async function fetchImageData()
     {
         try {
             const response = await fetchAPIRoute('images')
-            console.log(response);
             
             // Check if the object contains a 'message' property
             if (response && response.message)
@@ -57,8 +64,6 @@
                 console.log('Received message:', response.message)
                 return
             }
-
-            console.log(response.length, response[0].image_data, response[0].real, response[0].prediction, response[0].client_name)
 
             if (response.length === 0 || !response[0].image_data || response[0].real === undefined || response[0].prediction === undefined|| !response[0].client_name)
             {
@@ -69,9 +74,14 @@
                 image_data = `data:image_data/png;base64,${image_data}`;
             });
 
-            console.log(response[0].image_data)
-
             images.value = response;
+            carouselConfig.value = {
+                itemsToShow: images.value.length > 10 ? 10 : images.value.length,
+                autoplay: images.value.length > 10 ? 1000 : 0,
+                wrapAround: images.value.length > 10,
+                mouseWheel: true,
+                pauseAutoplayOnHover: true
+            }
 
         } catch (error) {
             console.error('Error parsing JSON for mnist images:', error)

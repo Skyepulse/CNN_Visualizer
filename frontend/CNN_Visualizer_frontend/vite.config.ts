@@ -6,11 +6,18 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    vue(),
-    tailwindcss()],
-    resolve : {
-      alias: {
-        '@src': path.resolve(__dirname, './src'),
+    vue({
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag) => tag === 'fit-text',
+        },
       },
+    }),
+    tailwindcss()],
+  resolve : {
+    alias: {
+      '@src': path.resolve(__dirname, './src'),
     },
+  },
+  
 })

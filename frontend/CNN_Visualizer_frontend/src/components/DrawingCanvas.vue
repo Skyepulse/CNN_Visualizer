@@ -12,18 +12,20 @@
               @mouseleave="stopDrawing"
             >
             </canvas>
-            <div
-              class="relative border-2 border-gray-300 rounded w-[150px] h-[150px] flex items-center justify-center"
-            >
-                <img
-                    v-if="hasImage"
-                    :src="outputImageSource"
-                    alt="Output"
-                    class="w-full h-full object-contain"
-                />
-                <p v-else class=" text-shadow-zinc-50 font-bold text-center text-gray-400">
-                    Your downscaled image sent to the model will appear here
-                </p>
+            <div class="flex flex-row w-full h-full">
+              <div
+                class="relative border-2 border-gray-300 rounded w-[150px] h-[150px] flex items-center justify-center"
+              >
+                  <img
+                      v-if="hasImage"
+                      :src="outputImageSource"
+                      alt="Output"
+                      class="w-full h-full object-contain"
+                  />
+                  <p v-else class=" text-shadow-zinc-50 font-bold text-center text-gray-400">
+                      Your downscaled image sent to the model will appear here
+                  </p>
+              </div>
             </div>
         </div>
         <div class="flex flex-col w-2/3 space-y-4">
@@ -36,6 +38,25 @@
             >
             </BabylonCanvas>
             <div class="flex justify-center flex-wrap mt-3 mb-3">
+                <div 
+                  class="flex items-center justify-center"
+                  :class="[
+                    navigation ? 'w-[40px]' : 'w-[250px]',
+                  ]"
+                >
+                    <input
+                      ref="numberInput"
+                      type="number"
+                      v-model.number="realNumber"
+                      min="0"
+                      max="9"
+                      class="border border-gray-300 rounded p-2 w-full text-center"
+                      :class = "hasDrawn ? 'bg-gray-100 text-teal-900 font-bold' : 'bg-gray-400 text-gray-500 cursor-not-allowed'"
+                      :placeholder="navigation ? '' : 'What number did you draw?'"
+                      :disabled="!hasDrawn"
+                      @blur="validateRealNumber"
+                    />
+                </div>
                 <div class="flex m-2" v-if ="navigation">
                     <button class="text-base rounded-r-none  hover:scale-110 focus:outline-none flex justify-center px-4 py-2 rounded font-bold cursor-pointer 
                     hover:bg-teal-200  
@@ -74,14 +95,15 @@
                     </button>
                 </div>
                 <div class="flex m-2">
-                    <button class="text-base  rounded-r-none  hover:scale-110 focus:outline-none flex justify-center px-4 py-2 rounded font-bold cursor-pointer 
-                    hover:bg-teal-700 hover:text-teal-100 
-                    bg-gray-100  
-                    text-teal-700 
-                      border duration-200 ease-in-out 
-                    border-teal-600 transition
-                      max-h-[40px]"
+                    <button
+                      class="text-base rounded-r-none focus:outline-none flex justify-center px-4 py-2 rounded font-bold cursor-pointer
+                        bg-gray-100 text-teal-700 border duration-200 ease-in-out border-teal-600 transition max-h-[40px]"
+                      :class="{
+                        'opacity-50 cursor-not-allowed pointer-events-none bg-gray-200 text-gray-400 border-gray-300': !hasDrawn,
+                        'hover:bg-teal-700 hover:text-teal-100 hover:scale-110': hasDrawn
+                      }"
                       @click="transformCanvasAs28x28Grayscale"
+                      :disabled="!hasDrawn"
                     >
                         <div class="flex leading-5">
                             <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye w-5 h-5 mr-1">
@@ -150,6 +172,9 @@
 
   const outputImageSource = ref<string>('')
   const hasImage = ref<boolean>(false)
+
+  const realNumber = ref<number | null>(null)
+  const numberInput = ref<HTMLInputElement | null>(null)
 
   const hasDrawn = ref<boolean>(false)
 
@@ -256,6 +281,13 @@
     ctx.value.fillRect(0, 0, canvas.value.width, canvas.value.height)
 
     hasDrawn.value = false
+
+    // Input value reset
+    if (numberInput.value) {
+      numberInput.value.value = ''
+      realNumber.value = null
+    }
+
     drawInitialText()
 
     // reset scene
@@ -267,6 +299,14 @@
     // reset center image
     outputImageSource.value = ''
     hasImage.value = false
+  }
+
+  //================================//
+  const validateRealNumber = () => {
+    if (realNumber.value === null || realNumber.value < 0 || realNumber.value > 9) {
+      realNumber.value = null;
+      if (numberInput.value) numberInput.value.value = '';
+    }
   }
 
   //================================//
@@ -283,7 +323,7 @@
 
   //================================//
   const transformCanvasAs28x28Grayscale = () => {
-    if (!canvas.value) return ""
+    if (!canvas.value || ! hasDrawn.value) return
 
     navigation.value = false
 
@@ -292,7 +332,7 @@
     resizedCanvas.height = 28
     const resizedCtx = resizedCanvas.getContext('2d')
 
-    if (!resizedCtx) return ""
+    if (!resizedCtx) return
 
     // 2. Draw original canvas content scaled down to 28x28
     resizedCtx.drawImage(canvas.value, 0, 0, 28, 28)
@@ -319,7 +359,7 @@
     const randomNumber = Math.floor(Math.random() * 1000000)
     const randomClient = `client-${randomNumber}`
     
-    sendImageData(base64String, 1, randomClient);
+    sendImageData(base64String, realNumber.value, randomClient);
   }
 
   //================================//
@@ -330,12 +370,6 @@
     const lastMessage = messages.value[messages.value.length - 1]
     
     if (lastMessage !== null && lastMessage.type === 'mnist-image') {
-      
-      const base64String = lastMessage.data
-      //outputImageSource.value = `data:image/png;base64,${base64String}`
-      //hasImage.value = true
-
-      // pop the message from the array
       messages.value.pop()
     }
 
@@ -345,7 +379,6 @@
       try{
 
         const decodedData = JSON.parse(data)
-        const prediction = decodedData.prediction
 
         const decodedVisuals: Visual[] = decodedData.visuals
         const transformedPredictions = decodedVisuals[decodedVisuals.length - 1].data;

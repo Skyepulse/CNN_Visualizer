@@ -15,19 +15,16 @@ export function useWebSocket(url: string = '') {
         socket.value.onopen = () => {
             isConnected.value = true;
             sendMessage("simple-message", "Hello from Vue!");
-            console.log('WebSocket connected');
         };
 
         socket.value.onmessage = (event) => {
             const message: { type: string, data: string } = JSON.parse(event.data);
             messages.value.push(message);
-            console.log('Message received of type:', message.type);
         };
 
         socket.value.onclose = () => {
             isConnected.value = false;
             socket.value = null;
-            console.log('WebSocket disconnected');
         };
     }
 
