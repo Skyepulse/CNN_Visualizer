@@ -110,6 +110,7 @@ class MyServer(FastAPI, ABC):
     #==========================#
     async def images_handler(self):
         rows = await self.db.get_images(self.db.max_images)
+        print(f"Retrieved {len(rows)} rows from the database.")
         
         images = []
 
@@ -130,6 +131,8 @@ class MyServer(FastAPI, ABC):
         
         if not images:
             return JSONResponse(content={"message": "No images found."})
+        
+        print(f"Returning {len(images)} images.")
 
         return JSONResponse(content=images)
     

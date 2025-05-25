@@ -5,6 +5,7 @@
         :src="imgSrc"
         alt="mnist_image"
         class="hover:scale-120 absolute top-0 left-0 w-full h-full object-contain rounded rounded-bl-none rounded-br-none transition-transform duration-300 ease-in-out group-hover:scale-110"
+        @click="sendImageData(imgSrc)"
       />
     </div>
     <p
@@ -19,9 +20,13 @@
 
 
 <script setup lang="ts">
-    defineProps<{
-        imgSrc: string
-        text: number
-        isCorrect: boolean
-    }>()
+  import { sendImageData } from '@src/composables/auxiliaries';
+
+  //================================//
+  defineProps<{
+      imgSrc: string
+      text: number
+      isCorrect: boolean
+  }>()
+    
 </script>

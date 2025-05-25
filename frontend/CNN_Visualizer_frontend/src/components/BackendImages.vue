@@ -49,6 +49,7 @@
     {
         try {
             const response = await fetchAPIRoute('images')
+            console.log(response);
             
             // Check if the object contains a 'message' property
             if (response && response.message)
@@ -57,7 +58,9 @@
                 return
             }
 
-            if (response.length === 0 || !response[0].image_data || !response[0].real || !response[0].prediction || !response[0].client_name)
+            console.log(response.length, response[0].image_data, response[0].real, response[0].prediction, response[0].client_name)
+
+            if (response.length === 0 || !response[0].image_data || response[0].real === undefined || response[0].prediction === undefined|| !response[0].client_name)
             {
                 throw new Error('No images found in the response. There should be at least one image.')
             }

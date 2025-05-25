@@ -84,6 +84,8 @@ class CNNServer(MyServer):
                 await self.package_and_send_prediction(websocket, prediction, visuals)
         
         if real != -1:
+
+            print("Saving image in DataBase")
             
             if client_name == "":
                 client_name = f"Client {websocket.client.port}"
