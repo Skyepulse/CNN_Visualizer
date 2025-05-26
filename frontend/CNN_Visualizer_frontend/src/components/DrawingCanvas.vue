@@ -194,7 +194,6 @@
     ctx.value.lineCap = 'round'
     ctx.value.strokeStyle = '#FFF'
     
-    outputImageSource.value = new URL('../assets/number.png', import.meta.url).href
     ctx.value.clearRect(0, 0, canvas.value.width, canvas.value.height)
     ctx.value.fillStyle='black'
     ctx.value.fillRect(0, 0, canvas.value.width, canvas.value.height)
