@@ -66,6 +66,7 @@ const ANIMATION_LOOKATS = [
 ]
 
 //================================//
+/*
 const ANIMATION_CUBES = [   // From -> To
     [1, 2],
     [2, 8],
@@ -76,6 +77,7 @@ const ANIMATION_CUBES = [   // From -> To
     [47, 49],
     [49, 50]
 ]
+*/
 
 //================================//
 const ANIMATION_STEPS = [
