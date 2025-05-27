@@ -9,6 +9,7 @@ import uvicorn
 import json
 from abc import ABC, abstractmethod
 from Config.config import DB_CONFIG
+from Config.config import BACKEND_PROXY_HEADERS
 import base64
 
 #==========================#
@@ -27,12 +28,11 @@ class MyServer(FastAPI, ABC):
     def __init__(self, port: int = 5000):
         super().__init__(lifespan=lifespan)
         self.add_middleware(
-            CORSMiddleware,
-            allow_origins=["https://www.008032025.xyz"],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
+                CORSMiddleware,
+                allow_origins=["*"],  # Allow all origins
+                allow_methods=["*"],
+                allow_headers=["*"],
+            )
         self.port = port
         self.host = "localhost"
 
@@ -135,8 +135,8 @@ class MyServer(FastAPI, ABC):
     
     #==========================#
     def run(self):
-        uvicorn.run(self, host=self.host, port=self.port, proxy_headers=True)
-        print(f"Server running on {self.host}:{self.port}")
+        print(f"Server running on {self.host}:{self.port} with proxy headers set to {BACKEND_PROXY_HEADERS}.")
+        uvicorn.run(self, host=self.host, port=self.port, proxy_headers=BACKEND_PROXY_HEADERS)
 
     #==========================#
     async def sendMessage(self, websocket: WebSocket, type: str, data: str):

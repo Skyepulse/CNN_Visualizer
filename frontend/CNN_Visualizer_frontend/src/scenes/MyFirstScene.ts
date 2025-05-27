@@ -36,7 +36,7 @@ export type CameraMovements = {
 const CAMERA_MOVEMENTS = { goLeft: false, goRight: false, goFront: false, goBack: false};
 const STEP_POSITIONS = {previous: false, next: false}
 let step_lock = false;
-const TEXT_SIZE = 20;
+let TEXT_SIZE = 20;
 let fontData: any = null;
 
 
@@ -92,14 +92,14 @@ const ANIMATION_STEPS = [
 
 //================================//
 const ANIMATION_TEXT_PLACEMENTS = [
-    {vertical_alignment: Control.VERTICAL_ALIGNMENT_CENTER, horizontal_alignment: Control.HORIZONTAL_ALIGNMENT_LEFT, left: 10, top: 0, width: "25%", height: "auto"},
-    {vertical_alignment: Control.VERTICAL_ALIGNMENT_TOP, horizontal_alignment: Control.HORIZONTAL_ALIGNMENT_LEFT, left: 10, top: 10, width: "25%", height: "auto"},
-    {vertical_alignment: Control.VERTICAL_ALIGNMENT_TOP, horizontal_alignment: Control.HORIZONTAL_ALIGNMENT_RIGHT, left: -10, top: 10, width: "40%", height: "auto"},
-    {vertical_alignment: Control.VERTICAL_ALIGNMENT_TOP, horizontal_alignment: Control.HORIZONTAL_ALIGNMENT_RIGHT, left: -10, top: 20, width: "45%", height: "auto"},
-    {vertical_alignment: Control.VERTICAL_ALIGNMENT_TOP, horizontal_alignment: Control.HORIZONTAL_ALIGNMENT_CENTER, left: 0, top: 50, width: "50%", height: "auto"},
-    {vertical_alignment: Control.VERTICAL_ALIGNMENT_TOP, horizontal_alignment: Control.HORIZONTAL_ALIGNMENT_RIGHT, left: 0, top: 50, width: "60%", height: "auto"},
-    {vertical_alignment: Control.VERTICAL_ALIGNMENT_CENTER, horizontal_alignment: Control.HORIZONTAL_ALIGNMENT_LEFT, left: 20, top: 0, width: "25%", height: "auto"},
-    {vertical_alignment: Control.VERTICAL_ALIGNMENT_BOTTOM, horizontal_alignment: Control.HORIZONTAL_ALIGNMENT_CENTER, left: 0, top: -20, width: "90%", height: "auto"},
+    {vertical_alignment: Control.VERTICAL_ALIGNMENT_CENTER, horizontal_alignment: Control.HORIZONTAL_ALIGNMENT_LEFT, left: "2%", top: "0%", width: "25%", height: "auto"},
+    {vertical_alignment: Control.VERTICAL_ALIGNMENT_TOP, horizontal_alignment: Control.HORIZONTAL_ALIGNMENT_LEFT, left: "2%", top: "2%", width: "25%", height: "auto"},
+    {vertical_alignment: Control.VERTICAL_ALIGNMENT_TOP, horizontal_alignment: Control.HORIZONTAL_ALIGNMENT_RIGHT, left: "-2%", top: "2%", width: "40%", height: "auto"},
+    {vertical_alignment: Control.VERTICAL_ALIGNMENT_TOP, horizontal_alignment: Control.HORIZONTAL_ALIGNMENT_RIGHT, left: "-2%", top: "5%", width: "45%", height: "auto"},
+    {vertical_alignment: Control.VERTICAL_ALIGNMENT_TOP, horizontal_alignment: Control.HORIZONTAL_ALIGNMENT_CENTER, left: "0%", top: "10%", width: "50%", height: "auto"},
+    {vertical_alignment: Control.VERTICAL_ALIGNMENT_TOP, horizontal_alignment: Control.HORIZONTAL_ALIGNMENT_RIGHT, left: "0%", top: "10%", width: "60%", height: "auto"},
+    {vertical_alignment: Control.VERTICAL_ALIGNMENT_CENTER, horizontal_alignment: Control.HORIZONTAL_ALIGNMENT_LEFT, left: "5%", top: "0%", width: "25%", height: "auto"},
+    {vertical_alignment: Control.VERTICAL_ALIGNMENT_BOTTOM, horizontal_alignment: Control.HORIZONTAL_ALIGNMENT_CENTER, left: "0%", top: "-5%", width: "90%", height: "auto"},
 ]
 
 //================================//
@@ -135,6 +135,8 @@ let numInstances = 0;
 //================================//
 export const createScene = async function (canvas: HTMLCanvasElement, fpsDisplay?: HTMLElement): Promise<SceneInformation> {
     const engine = new Engine(canvas, true);
+    TEXT_SIZE = Math.round(canvas.height * 0.05);
+    console.log("TEXT_SIZE", TEXT_SIZE);
     const inRenderLoop = () => {
         if (fpsDisplay) {
             const fps = engine.getFps();
@@ -145,12 +147,13 @@ export const createScene = async function (canvas: HTMLCanvasElement, fpsDisplay
     fontData = await (await fetch("https://assets.babylonjs.com/fonts/Droid Sans_Regular.json")).json();
 
     const IntroText = new TextBlock("IntroText");
-    IntroText.text = "This is an animated visualizer of the inner workings of a CNN model for MNIST digit recognition. \n\n Draw a number and press Send to see all steps in the model's Inference process and the final prediction! \n\n If you also input the real number you tried to draw, your image will be saved for other users to test too!";
+    IntroText.text = `This is an animated visualizer of the inner workings of a CNN model for MNIST digit recognition. \n\n Draw a number and press Send to see all steps in the model's Inference process and the final prediction! \n\n If you also input the real number you tried to draw, your image will be saved for other users to test too!`;
     IntroText.color = "white";
     IntroText.textWrapping = true;
     IntroText.resizeToFit = true;
     IntroText.width = "80%";
     IntroText.height = "auto";
+    IntroText.fontSize = TEXT_SIZE;
 
     const sceneInformation: SceneInformation = {
         engine: engine,
@@ -1067,7 +1070,7 @@ export const resetScene = async function(sceneInformation: SceneInformation): Pr
 
     sceneInformation.fullScreenGUI = AdvancedDynamicTexture.CreateFullscreenUI("UI", true, sceneInformation.scene);
     
-    sceneInformation.IntroText.fontSize = 40 *  window.outerWidth / 1920;
+    sceneInformation.IntroText.fontSize = TEXT_SIZE;
     sceneInformation.fullScreenGUI.addControl(sceneInformation.IntroText);
     sceneInformation.IntroText.isVisible = true;
     

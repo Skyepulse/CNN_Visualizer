@@ -12,3 +12,5 @@ DB_CONFIG = {
 }
 
 BACKEND_PORT = int(os.getenv("BACKEND_PORT", 5000))
+
+BACKEND_PROXY_HEADERS = int(os.getenv("BACKEND_PROXY_HEADERS", 0)) > 0
