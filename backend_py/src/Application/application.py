@@ -28,7 +28,7 @@ class MyServer(FastAPI, ABC):
         super().__init__(lifespan=lifespan)
         self.add_middleware(
             CORSMiddleware,
-            allow_origins=["*"],
+            allow_origins=["https://www.008032025.xyz"],
             allow_credentials=True,
             allow_methods=["*"],
             allow_headers=["*"],
@@ -135,7 +135,7 @@ class MyServer(FastAPI, ABC):
     
     #==========================#
     def run(self):
-        uvicorn.run(self, host=self.host, port=self.port)
+        uvicorn.run(self, host=self.host, port=self.port, proxy_headers=True)
         print(f"Server running on {self.host}:{self.port}")
 
     #==========================#

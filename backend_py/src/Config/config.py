@@ -10,3 +10,5 @@ DB_CONFIG = {
     "password": os.getenv("DB_PASSWORD", ""),
     "dbname": os.getenv("DB_NAME", "postgres")
 }
+
+BACKEND_PORT = int(os.getenv("BACKEND_PORT", 5000))
