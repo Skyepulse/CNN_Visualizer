@@ -1,6 +1,6 @@
 <template>
     <h1 class="text-center font-bold p-0 mb-1 bg-gray-200 text-black rounded rounded-bl-none rounded-br-none" v-if="images">... Or select one of the other user's images!</h1>
-    <Carousel v-bind="carouselConfig" v-if="images">
+    <Carousel v-bind="carouselConfig" v-if="images.length > 0">
         <Slide v-for="({ image_data, prediction, real }, index) in images" :key="index">
             <div class="carousel__item h-25">
                 <MnistImage
