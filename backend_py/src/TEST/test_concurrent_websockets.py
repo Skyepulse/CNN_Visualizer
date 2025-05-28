@@ -3,10 +3,17 @@ import asyncio
 import base64
 import websockets
 import json
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+BACKEND_WS_URL = os.getenv("BACKEND_WS_URL", f"ws://localhost:{5000}/ws")
+API_URL = os.getenv("BACKEND_API_URL", f"http://localhost:{5000}")
 
 # Path to a sample MNIST image file to send as base64
 SAMPLE_IMAGE_PATH = "sample_digit.png"
-SERVER_WS_URL = "ws://localhost:5000/ws"
+SERVER_WS_URL = BACKEND_WS_URL
 
 def load_sample_image_base64():
     with open(SAMPLE_IMAGE_PATH, "rb") as f:

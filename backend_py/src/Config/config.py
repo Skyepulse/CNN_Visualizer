@@ -13,4 +13,7 @@ DB_CONFIG = {
 
 BACKEND_PORT = int(os.getenv("BACKEND_PORT", 5000))
 
+BACKEND_WS_URL = os.getenv("BACKEND_WS_URL", f"ws://localhost:{BACKEND_PORT}/ws")
+BACKEND_API_URL = os.getenv("BACKEND_API_URL", f"http://localhost:{BACKEND_PORT}")
+
 BACKEND_PROXY_HEADERS = int(os.getenv("BACKEND_PROXY_HEADERS", 0)) > 0
