@@ -1,5 +1,6 @@
 <template>
-    <div class="flex flex-row items-start space-x-4 p-4 w-full h-full">
+    <!--- IF IS NOT MOBILE --->  
+    <div class="flex flex-row items-start space-x-4 p-4 w-full h-full" v-if="!isMobile">
         <div ref = "canvasContainer" class="flex flex-col items-start space-y-4 w-1/3">
             <canvas
               ref="canvas"
@@ -141,6 +142,146 @@
             </BackendImages>
         </div>
     </div>
+
+    <!--- IF IS MOBILE --->
+    <div class="flex flex-col items-center space-x-4 p-1 m-0 w-full h-full" v-else>
+      <BabylonCanvas 
+            v-if="fpsDisplay"
+            :height="babylonHeight"
+            :width="babylonWidth" 
+            :fpsDisplay="fpsDisplay" 
+            ref="bbCanvasRef"
+          >
+      </BabylonCanvas>
+      <div class="flex justify-center flex-wrap mt-3 mb-3">
+          <div 
+            class="flex items-center justify-center"
+            :class="[
+              navigation ? 'w-[40px]' : 'w-[250px]',
+            ]"
+          >
+              <input
+                ref="numberInput"
+                type="number"
+                v-model.number="realNumber"
+                min="0"
+                max="9"
+                class="border border-gray-300 rounded p-2 w-full text-center"
+                :class = "hasDrawn ? 'bg-gray-100 text-teal-900 font-bold' : 'bg-gray-400 text-gray-500 cursor-not-allowed'"
+                :placeholder="navigation ? '' : 'What number did you draw?'"
+                :disabled="!hasDrawn"
+                @blur="validateRealNumber"
+              />
+          </div>
+          <div class="flex m-2" v-if ="navigation">
+              <button class="text-base rounded-r-none  hover:scale-110 focus:outline-none flex justify-center px-4 py-2 rounded font-bold cursor-pointer 
+              hover:bg-teal-200  
+              bg-gray-100  
+              text-teal-700 
+                border duration-200 ease-in-out 
+              border-teal-600 transition
+                max-h-[40px]
+                w-full"
+                @click="goToPreviousStep"
+              >
+                  <div class="flex leading-4.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-left w-5 h-5">
+                          <polyline points="15 18 9 12 15 6">
+                          </polyline>
+                      </svg>
+                      <fit-text>Last step</fit-text>
+                  </div>
+              </button>
+              <button class="text-base  rounded-l-none border-l-0  hover:scale-110 focus:outline-none flex justify-center px-4 py-2 rounded font-bold cursor-pointer 
+              hover:bg-teal-200  
+              bg-gray-100  
+              text-teal-700 
+                border duration-200 ease-in-out 
+              border-teal-600 transition
+                max-h-[40px]
+                w-full"
+                @click="goToNextStep"
+              >
+                  <div class="flex leading-4.5">
+                      <fit-text>Next step</fit-text>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right w-5 h-5 ml-1">
+                          <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                  </div>
+              </button>
+          </div>
+          <div class="flex m-2">
+              <button
+                class="text-base rounded-r-none focus:outline-none flex justify-center px-4 py-2 rounded font-bold cursor-pointer
+                  bg-gray-100 text-teal-700 border duration-200 ease-in-out border-teal-600 transition max-h-[40px]"
+                :class="{
+                  'opacity-50 cursor-not-allowed pointer-events-none bg-gray-200 text-gray-400 border-gray-300': !hasDrawn,
+                  'hover:bg-teal-700 hover:text-teal-100 hover:scale-110': hasDrawn
+                }"
+                @click="transformCanvasAs28x28Grayscale"
+                :disabled="!hasDrawn"
+              >
+                  <div class="flex leading-5">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye w-5 h-5 mr-1">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      <fit-text>Send to Model</fit-text>
+                  </div>
+              </button>
+              <button class="text-base  rounded-l-none border-l-0  hover:scale-110 focus:outline-none flex justify-center px-4 py-2 rounded font-bold cursor-pointer 
+              hover:bg-teal-700 hover:text-teal-100 
+              bg-gray-100  
+              text-teal-700 
+                border duration-200 ease-in-out 
+              border-teal-600 transition
+                max-h-[40px]"
+                @click="cleanup"
+              >   
+                  <div class="flex leading-5">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit w-5 h-5 mr-1">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                      </svg>
+                      <fit-text>Clear Canvas</fit-text>
+                  </div>
+              </button>
+              <div class="flex ml-2">
+                  <p ref="fpsDisplay" class="text-gray-300 text-lg font-bold [font-size:calc(1vw+0.3rem)] flex items-center justify-center h-full">
+                    0
+                  </p>
+              </div>
+          </div>
+      </div>
+      <div ref="canvasContainer" class="flex flex-row m-0 p-0 w-full justify-center">
+        <div
+          ref="mobileDownscaledImageContainer"
+          class="relative border-2 border-gray-300 rounded flex items-center justify-center"
+        >
+            <img
+                v-if="hasImage"
+                :src="outputImageSource"
+                alt="Output"
+                class="w-full h-full object-contain"
+            />
+            <p v-else class=" text-shadow-zinc-50 font-bold text-center text-gray-400 text-[3vw]">
+                Your downscaled image sent to the model will appear here
+            </p>
+        </div>
+        <canvas
+          ref="mobileCanvas"
+          width="400"
+          height="400"
+          class="border-2 border-gray-300 rounded cursor-crosshair"
+          @mousedown="startDrawing"
+          @mouseup="stopDrawing"
+          @mousemove="draw"
+          @mouseleave="stopDrawing"
+        >
+        </canvas>
+      </div>
+      
+    </div> 
 </template>
 
 <script setup lang="ts">
@@ -151,9 +292,12 @@
   import type { SceneInformation } from '@src/scenes/MyFirstScene'
   import BackendImages from '@src/components/BackendImages.vue'
   import { sendImageData } from '@src/composables/auxiliaries'
+  import { useResponsive } from '@src/composables/useresponsive'
+  import { nextTick } from 'vue'
 
   //================================//
   const { messages } = useWebSocket()
+  const { isMobile } = useResponsive()
 
   //================================//
   export type Visual = {
@@ -165,6 +309,9 @@
 
   //================================//
   const canvas = ref<HTMLCanvasElement | null>(null)
+  const mobileCanvas = ref<HTMLCanvasElement | null>(null)
+
+  const getCanvas = (): HTMLCanvasElement | null => isMobile.value ? mobileCanvas.value : canvas.value;
   const canvasContainer = ref<HTMLDivElement | null>(null)
   const isDrawing = ref<boolean>(false)
   const ctx = ref<CanvasRenderingContext2D | null>(null)
@@ -182,11 +329,24 @@
 
   const navigation = ref<boolean | null>(null)
 
-  //================================//
-  onMounted(() => {
-    if (!canvas.value) return
+  // Mobile Only
+  const babylonWidth = ref<number>(800)
+  const babylonHeight = ref<number>(400)
 
-    ctx.value = canvas.value.getContext('2d')
+  const mobileDownscaledImageContainer = ref<HTMLElement | null>(null)
+
+  //================================//
+  onMounted(async () => {
+
+    let currentCanvas = getCanvas();
+    while (!currentCanvas) {
+      await nextTick();
+      currentCanvas = getCanvas();
+    }
+
+    if (!currentCanvas) return
+
+    ctx.value = currentCanvas.getContext('2d')
 
     if (!ctx.value) return
 
@@ -194,9 +354,9 @@
     ctx.value.lineCap = 'round'
     ctx.value.strokeStyle = '#FFF'
     
-    ctx.value.clearRect(0, 0, canvas.value.width, canvas.value.height)
+    ctx.value.clearRect(0, 0, currentCanvas.width, currentCanvas.height)
     ctx.value.fillStyle='black'
-    ctx.value.fillRect(0, 0, canvas.value.width, canvas.value.height)
+    ctx.value.fillRect(0, 0, currentCanvas.width, currentCanvas.height)
 
     resizeCanvas()
 
@@ -210,13 +370,14 @@
   //================================//
   const startDrawing = (e: MouseEvent): void => {
     isDrawing.value = true
-    if (!ctx.value || !canvas.value) return
+    const currentCanvas = getCanvas();
+    if (!ctx.value || !currentCanvas) return
 
     if (!hasDrawn.value){
         hasDrawn.value = true
-        ctx.value.clearRect(0, 0, canvas.value.width, canvas.value.height)
+        ctx.value.clearRect(0, 0, currentCanvas.width, currentCanvas.height)
         ctx.value.fillStyle='black'
-        ctx.value.fillRect(0, 0, canvas.value.width, canvas.value.height)
+        ctx.value.fillRect(0, 0, currentCanvas.width, currentCanvas.height)
     }
 
     ctx.value.beginPath()
@@ -225,17 +386,31 @@
 
   //================================//
   const resizeCanvas = () => {
-    if (!canvas.value) return
+    const currentCanvas = getCanvas();
+
+    if (isMobile.value) {
+      // For mobile, set a fixed size
+      const screenWidth = window.innerWidth - 16;
+      // Keep a 1:2 aspect ratio
+      babylonWidth.value = screenWidth;
+      babylonHeight.value = screenWidth * 0.5;
+    }
+
+    if (!currentCanvas) return
 
     // Get the new computed size (CSS width)
     const rect = canvasContainer.value != null ? canvasContainer.value.getBoundingClientRect() : { width: 400, height: 400 }
-    const size = rect.width  // Because it's square (aspect-square)
+    const size = isMobile.value ? rect.width * 0.7 : rect.width;  // Because it's square (aspect-square)
+
+    if (mobileDownscaledImageContainer.value) 
+    {
+        mobileDownscaledImageContainer.value.style.height = `${rect.width * 0.3}px`;
+    }
 
     // Set the internal resolution to match
-    canvas.value.width = size
-    canvas.value.height = size
+    currentCanvas.width = size
+    currentCanvas.height = size
 
-    // Optional: redraw background or initial text if needed
     if (ctx.value) {
       ctx.value.lineWidth = size * 0.06  // Keep thickness proportional
       ctx.value.lineCap = 'round'
@@ -271,13 +446,14 @@
 
   //================================//
   const cleanup = (): void => {
-    if (!canvas.value || !ctx.value) return
+    const currentCanvas = getCanvas();
+    if (!currentCanvas || !ctx.value) return
 
     navigation.value = false
 
-    ctx.value.clearRect(0, 0, canvas.value.width, canvas.value.height)
+    ctx.value.clearRect(0, 0, currentCanvas.width, currentCanvas.height)
     ctx.value.fillStyle='black'
-    ctx.value.fillRect(0, 0, canvas.value.width, canvas.value.height)
+    ctx.value.fillRect(0, 0, currentCanvas.width, currentCanvas.height)
 
     hasDrawn.value = false
 
@@ -310,19 +486,22 @@
 
   //================================//
   const drawInitialText = () => {
-    if (!ctx.value || !canvas.value) return
+    const currentCanvas = getCanvas();
+    if (!ctx.value || !currentCanvas) return
 
-    const canvasWidth = canvas.value.width
+    const canvasWidth = currentCanvas.width
 
     ctx.value.font = `${(canvasWidth * 26 / 400)}px system-ui`
     ctx.value.fillStyle = 'white'
     ctx.value.textAlign = 'center'
-    ctx.value.fillText('Draw a number from 0-9 here ✍️', canvas.value.width / 2, canvas.value.height / 2)
+    ctx.value.fillText('Draw a number from 0-9 here ✍️', currentCanvas.width / 2, currentCanvas.height / 2)
   }
 
   //================================//
   const transformCanvasAs28x28Grayscale = () => {
-    if (!canvas.value || ! hasDrawn.value) return
+    const currentCanvas = getCanvas();
+
+    if (!currentCanvas || ! hasDrawn.value) return
 
     navigation.value = false
 
@@ -334,7 +513,7 @@
     if (!resizedCtx) return
 
     // 2. Draw original canvas content scaled down to 28x28
-    resizedCtx.drawImage(canvas.value, 0, 0, 28, 28)
+    resizedCtx.drawImage(currentCanvas, 0, 0, 28, 28)
 
     // 3. Get the image data and manually convert to grayscale
     const imageData = resizedCtx.getImageData(0, 0, 28, 28)
