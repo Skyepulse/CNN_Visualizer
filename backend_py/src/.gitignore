@@ -1,1 +1,4 @@
 /mnist_images/
+/UsageLogs/
+/venv/
+/src/__pycache__/
