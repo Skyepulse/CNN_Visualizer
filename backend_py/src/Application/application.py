@@ -34,7 +34,7 @@ class MyServer(FastAPI, ABC):
                 allow_headers=["*"],
             )
         self.port = port
-        self.host = "localhost"
+        self.host = "0.0.0.0"
 
         # Members
         self.connected_clients = set()
