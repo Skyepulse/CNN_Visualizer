@@ -280,7 +280,10 @@
         >
         </canvas>
       </div>
-      
+      <div class="w-full mt-2">
+        <BackendImages>
+        </BackendImages>
+      </div>
     </div> 
 </template>
 

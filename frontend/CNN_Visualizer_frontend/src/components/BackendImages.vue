@@ -1,4 +1,4 @@
-<template>
+<template class="bg-blue-100">
     <h1 class="text-center font-bold p-0 mb-1 bg-gray-200 text-black rounded rounded-bl-none rounded-br-none" v-if="images">... Or select one of the other user's images!</h1>
     <Carousel v-bind="carouselConfig" v-if="images.length > 0">
         <Slide v-for="({ image_data, prediction, real }, index) in images" :key="index">
@@ -23,7 +23,10 @@
     import 'vue3-carousel/carousel.css'
     import { Carousel, Slide} from 'vue3-carousel'
 
+    import { useResponsive } from '@src/composables/useresponsive'
+
     const { fetchAPIRoute } = useWebSocket()
+    const { isMobile } = useResponsive()
 
     //================================//
     const images = ref<ImageData[]>([])
@@ -81,6 +84,14 @@
                 wrapAround: images.value.length > 10,
                 mouseWheel: true,
                 pauseAutoplayOnHover: true
+            }
+
+            if (isMobile.value) {
+                carouselConfig.value.itemsToShow =images.value.length > 3 ? 3 : images.value.length;
+                carouselConfig.value.autoplay = images.value.length > 3 ? 1000 : 0;
+                carouselConfig.value.wrapAround = images.value.length > 3;
+                carouselConfig.value.mouseWheel = false;
+                carouselConfig.value.pauseAutoplayOnHover = false;
             }
 
         } catch (error) {
