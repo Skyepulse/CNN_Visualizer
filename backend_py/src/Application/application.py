@@ -43,7 +43,7 @@ class MyServer(FastAPI, ABC):
         self.add_websocket_route("/ws", self.websocket_endpoint)
 
         self.add_api_route("/status", self.status_handler, methods=["GET"])
-        self.add_api_route("/", self.hello_handler, methods=["GET"])
+        self.add_api_route("/helloworld", self.hello_handler, methods=["GET"])
         self.add_api_route("/images", self.images_handler, methods=["GET"])
 
         # Init DB
