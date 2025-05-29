@@ -87,9 +87,16 @@
             }
 
             if (isMobile.value) {
-                carouselConfig.value.itemsToShow =images.value.length > 3 ? 3 : images.value.length;
-                carouselConfig.value.autoplay = images.value.length > 3 ? 1000 : 0;
-                carouselConfig.value.wrapAround = images.value.length > 3;
+
+                const screenWidth = window.innerWidth;
+                const itemWidth = 70;
+                const itemsToShow = Math.floor(screenWidth / itemWidth) - 1;
+
+                console.log('Items to show:', itemsToShow, 'Screen width:', screenWidth, 'Item width:', itemWidth);
+
+                carouselConfig.value.itemsToShow =images.value.length > itemsToShow ? itemsToShow : images.value.length;
+                carouselConfig.value.autoplay = images.value.length > itemsToShow ? 1000 : 0;
+                carouselConfig.value.wrapAround = images.value.length > itemsToShow;
                 carouselConfig.value.mouseWheel = false;
                 carouselConfig.value.pauseAutoplayOnHover = false;
             }
