@@ -17,7 +17,7 @@ class CNNServer(MyServer):
 
         self.images = {}
         self.image_filepaths = {}
-        self.modelHolder = LeNetLoader(model_path="../../other/Models/mnist_leNet.pth", dataset="mnist")
+        self.modelHolder = LeNetLoader(model_path="other/Models/mnist_leNet.pth", dataset="mnist")
 
         self.modelHolder.load_model()
 
