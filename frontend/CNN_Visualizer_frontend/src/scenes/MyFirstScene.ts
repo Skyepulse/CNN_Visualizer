@@ -1068,7 +1068,7 @@ export const resetScene = async function(sceneInformation: SceneInformation): Pr
     sceneInformation.cubeInstances = [];
     sceneInformation.cubeInstances.push(sceneInformation.wholeRenderCube);
 
-    sceneInformation.fullScreenGUI = AdvancedDynamicTexture.CreateFullscreenUI("UI", true, sceneInformation.scene);
+    sceneInformation.fullScreenGUI = AdvancedDynamicTexture.CreateFullscreenUI("UI", true, sceneInformation.scene, undefined, true);
     sceneInformation.fullScreenGUI.idealHeight = 1080;
     sceneInformation.fullScreenGUI.idealWidth = 1920;
     
