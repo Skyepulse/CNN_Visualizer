@@ -670,6 +670,8 @@
         const decodedVisuals: Visual[] = decodedData.visuals
         const transformedPredictions = decodedVisuals[decodedVisuals.length - 1].data;
 
+        console.log('Predictions:', transformedPredictions);
+
         const originalImage: Visual = decodedVisuals[0]
         outputImageSource.value = await saveVisualAsPNG(originalImage)
         hasImage.value = true
