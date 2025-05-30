@@ -135,7 +135,7 @@ let numInstances = 0;
 //================================//
 export const createScene = async function (canvas: HTMLCanvasElement, fpsDisplay?: HTMLElement): Promise<SceneInformation> {
     const engine = new Engine(canvas, true);
-    TEXT_SIZE = Math.round(canvas.height * 0.05);
+    TEXT_SIZE = Math.round(canvas.height * 0.12);
     const inRenderLoop = () => {
         if (fpsDisplay) {
             const fps = engine.getFps();
@@ -152,7 +152,7 @@ export const createScene = async function (canvas: HTMLCanvasElement, fpsDisplay
     IntroText.resizeToFit = true;
     IntroText.width = "80%";
     IntroText.height = "auto";
-    IntroText.fontSize = TEXT_SIZE;
+    IntroText.fontSize = TEXT_SIZE * 1.5;
     IntroText.lineSpacing = 0;
 
     const sceneInformation: SceneInformation = {
@@ -1069,8 +1069,10 @@ export const resetScene = async function(sceneInformation: SceneInformation): Pr
     sceneInformation.cubeInstances.push(sceneInformation.wholeRenderCube);
 
     sceneInformation.fullScreenGUI = AdvancedDynamicTexture.CreateFullscreenUI("UI", true, sceneInformation.scene);
+    sceneInformation.fullScreenGUI.idealHeight = 1080;
+    sceneInformation.fullScreenGUI.idealWidth = 1920;
     
-    sceneInformation.IntroText.fontSize = TEXT_SIZE;
+    sceneInformation.IntroText.fontSize = TEXT_SIZE * 1.5;
     sceneInformation.fullScreenGUI.addControl(sceneInformation.IntroText);
     sceneInformation.IntroText.isVisible = true;
     
