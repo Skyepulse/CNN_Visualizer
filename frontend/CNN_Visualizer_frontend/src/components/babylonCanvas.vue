@@ -66,5 +66,11 @@
     //================================//
     defineExpose({
         getSceneInformation: () => sceneInfo.value,
+        getBoundingClientRect: () => {
+            if (bjsCanvas.value) {
+                return bjsCanvas.value.getBoundingClientRect();
+            }
+            return { width: 0, height: 0 };
+        }
     });
 </script>

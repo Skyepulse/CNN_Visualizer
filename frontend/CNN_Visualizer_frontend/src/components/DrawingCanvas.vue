@@ -32,8 +32,8 @@
         <div class="flex flex-col w-2/3 space-y-4">
             <BabylonCanvas 
               v-if="fpsDisplay"
-              :height="400" 
-              :width="800" 
+              :height="babylonHeight" 
+              :width="babylonWidth" 
               :fpsDisplay="fpsDisplay" 
               ref="bbCanvasRef"
             >
@@ -396,13 +396,20 @@
     if (isMobile.value) {
       // For mobile, set a fixed size
       const screenWidth = window.innerWidth - 16;
-      console.log('Screen width:', screenWidth);
+
       // Keep a 1:2 aspect ratio
       babylonWidth.value = screenWidth;
       babylonHeight.value = screenWidth * 0.5;
-
-      console.log('Babylon canvas size:', babylonWidth.value, babylonHeight.value);
+    } else {
+      const rect = bbCanvasRef.value != null ? bbCanvasRef.value.getBoundingClientRect() : { width: 800, height: 400 }
+      babylonWidth.value = rect.width;
+      babylonHeight.value = babylonWidth.value * 0.5;
     }
+
+    console.log('Resize canvas to', babylonWidth.value, babylonHeight.value);
+
+    const currentBabylonCanvas = getBabylonCanvas();
+    currentBabylonCanvas?.getSceneInformation()?.engine.resize();
 
     if (!currentCanvas) return
 

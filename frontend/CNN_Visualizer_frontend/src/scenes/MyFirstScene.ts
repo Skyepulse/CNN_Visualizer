@@ -39,7 +39,6 @@ let step_lock = false;
 let TEXT_SIZE = 20;
 let fontData: any = null;
 
-
 //================================//
 const ANIMATION_PLACEMENTS = [
     new Vector3(-10, 5, -14),
@@ -135,7 +134,9 @@ let numInstances = 0;
 //================================//
 export const createScene = async function (canvas: HTMLCanvasElement, fpsDisplay?: HTMLElement): Promise<SceneInformation> {
     const engine = new Engine(canvas, true);
-    TEXT_SIZE = Math.round(canvas.height * 0.12);
+    engine.adaptToDeviceRatio = true;
+
+    TEXT_SIZE = Math.round(canvas.height * 0.05);
     const inRenderLoop = () => {
         if (fpsDisplay) {
             const fps = engine.getFps();
@@ -152,8 +153,9 @@ export const createScene = async function (canvas: HTMLCanvasElement, fpsDisplay
     IntroText.resizeToFit = true;
     IntroText.width = "80%";
     IntroText.height = "auto";
-    IntroText.fontSize = TEXT_SIZE * 1.5;
+    IntroText.fontSize = TEXT_SIZE;
     IntroText.lineSpacing = 0;
+    IntroText.fontFamily = fontData.family;
 
     const sceneInformation: SceneInformation = {
         engine: engine,
@@ -1068,11 +1070,9 @@ export const resetScene = async function(sceneInformation: SceneInformation): Pr
     sceneInformation.cubeInstances = [];
     sceneInformation.cubeInstances.push(sceneInformation.wholeRenderCube);
 
-    sceneInformation.fullScreenGUI = AdvancedDynamicTexture.CreateFullscreenUI("UI", true, sceneInformation.scene, undefined, true);
-    sceneInformation.fullScreenGUI.idealHeight = 1080;
-    sceneInformation.fullScreenGUI.idealWidth = 1920;
+    sceneInformation.fullScreenGUI = AdvancedDynamicTexture.CreateFullscreenUI("UI", true, sceneInformation.scene);
     
-    sceneInformation.IntroText.fontSize = TEXT_SIZE * 1.5;
+    sceneInformation.IntroText.fontSize = TEXT_SIZE;
     sceneInformation.fullScreenGUI.addControl(sceneInformation.IntroText);
     sceneInformation.IntroText.isVisible = true;
     
@@ -1411,6 +1411,7 @@ const generateTexts = async function(sceneInformation: SceneInformation,): Promi
         text.color = "white";
         text.fontSize = TEXT_SIZE;
         text.lineSpacing = 0;
+        text.fontFamily = fontData.fontFamily;
         
         text.top = ANIMATION_TEXT_PLACEMENTS[step.pose].top;
         text.left = ANIMATION_TEXT_PLACEMENTS[step.pose].left;
