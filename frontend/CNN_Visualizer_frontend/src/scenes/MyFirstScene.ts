@@ -49,7 +49,7 @@ const ANIMATION_PLACEMENTS = [
     new Vector3(-10, 5, -49),
     new Vector3(-13, 5, -60),
     new Vector3(-15, 15, -62),
-    new Vector3(0, 8, -68)
+    new Vector3(0, 5, -64)
 ]
 
 //================================//
@@ -153,6 +153,7 @@ export const createScene = async function (canvas: HTMLCanvasElement, fpsDisplay
     IntroText.width = "80%";
     IntroText.height = "auto";
     IntroText.fontSize = TEXT_SIZE;
+    IntroText.lineSpacing = 0;
 
     const sceneInformation: SceneInformation = {
         engine: engine,
@@ -928,9 +929,9 @@ const getColorFromName = (colorName: string): string => {
         'gold': '#FFDB32',
         'silver': '#C0C8C0',
         'orange': '#FFA532',
-        'white': '#3c4ce9'
+        'white': '#00ffe8'
     };
-    return colorMap[colorName] || '#3c4ce9';
+    return colorMap[colorName] || '#00ffe8';
 };
 
 //================================//
@@ -938,7 +939,7 @@ export const animatePredictionNumber = async function(sceneInformation: SceneInf
 {
     if (sceneInformation === null || sceneInformation.scene === undefined || sceneInformation.predictionMeshes == undefined || sceneInformation.camera === undefined) return;
 
-    const text: Mesh | null = MeshBuilder.CreateText(`text_${sceneInformation.predictionMeshes.length}`, `${number}%`, fontData, {size: 0.25, resolution: 1, depth: 0.1}, sceneInformation.scene, earcut);
+    const text: Mesh | null = MeshBuilder.CreateText(`text_${sceneInformation.predictionMeshes.length}`, `${number}%`, fontData, {size: 0.25, resolution: 16, depth: 0.1}, sceneInformation.scene, earcut);
     if (!text) return;
 
     text.position.set(startPosition.x, startPosition.y, startPosition.z);
@@ -1039,7 +1040,7 @@ export const resetScene = async function(sceneInformation: SceneInformation): Pr
     sceneInformation.camera.speed = 0.5; // Adjust the speed as needed
 
     const newLight = new DirectionalLight("light1", new Vector3(0, 0, 1), sceneInformation.scene);
-    newLight.intensity = 1.0;
+    newLight.intensity = 1.5;
     newLight.position = new Vector3(0, 0, -100);
 
     sceneInformation.light = newLight;
@@ -1407,6 +1408,7 @@ const generateTexts = async function(sceneInformation: SceneInformation,): Promi
         text.height = "auto";
         text.color = "white";
         text.fontSize = TEXT_SIZE;
+        text.lineSpacing = 0;
         
         text.top = ANIMATION_TEXT_PLACEMENTS[step.pose].top;
         text.left = ANIMATION_TEXT_PLACEMENTS[step.pose].left;
