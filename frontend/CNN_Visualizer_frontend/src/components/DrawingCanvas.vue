@@ -11,6 +11,9 @@
               @mouseup="stopDrawing"
               @mousemove="draw"
               @mouseleave="stopDrawing"
+              @touchstart.prevent="startDrawingTouch"
+              @touchmove.prevent="drawTouch"
+              @touchend="stopDrawing"
             >
             </canvas>
             <div class="flex flex-row w-full h-full">
@@ -174,8 +177,7 @@
               />
           </div>
           <div class="flex m-2" v-if ="navigation">
-              <button class="text-base rounded-r-none  hover:scale-110 focus:outline-none flex justify-center px-4 py-2 rounded font-bold cursor-pointer 
-              hover:bg-teal-200  
+              <button class="text-base rounded-r-none focus:outline-none flex justify-center px-4 py-2 rounded font-bold cursor-pointer 
               bg-gray-100  
               text-teal-700 
                 border duration-200 ease-in-out 
@@ -192,8 +194,7 @@
                       <fit-text>Last step</fit-text>
                   </div>
               </button>
-              <button class="text-base  rounded-l-none border-l-0  hover:scale-110 focus:outline-none flex justify-center px-4 py-2 rounded font-bold cursor-pointer 
-              hover:bg-teal-200  
+              <button class="text-base  rounded-l-none border-l-0 focus:outline-none flex justify-center px-4 py-2 rounded font-bold cursor-pointer 
               bg-gray-100  
               text-teal-700 
                 border duration-200 ease-in-out 
@@ -216,7 +217,7 @@
                   bg-gray-100 text-teal-700 border duration-200 ease-in-out border-teal-600 transition max-h-[40px]"
                 :class="{
                   'opacity-50 cursor-not-allowed pointer-events-none bg-gray-200 text-gray-400 border-gray-300': !hasDrawn,
-                  'hover:bg-teal-700 hover:text-teal-100 hover:scale-110': hasDrawn
+                  '': hasDrawn
                 }"
                 @click="transformCanvasAs28x28Grayscale"
                 :disabled="!hasDrawn"
@@ -229,8 +230,7 @@
                       <fit-text>Send to Model</fit-text>
                   </div>
               </button>
-              <button class="text-base  rounded-l-none border-l-0  hover:scale-110 focus:outline-none flex justify-center px-4 py-2 rounded font-bold cursor-pointer 
-              hover:bg-teal-700 hover:text-teal-100 
+              <button class="text-base  rounded-l-none border-l-0 focus:outline-none flex justify-center px-4 py-2 rounded font-bold cursor-pointer 
               bg-gray-100  
               text-teal-700 
                 border duration-200 ease-in-out 
@@ -277,6 +277,9 @@
           @mouseup="stopDrawing"
           @mousemove="draw"
           @mouseleave="stopDrawing"
+          @touchstart.prevent="startDrawingTouch"
+          @touchmove.prevent="drawTouch"
+          @touchend="stopDrawing"
         >
         </canvas>
       </div>
@@ -406,8 +409,6 @@
       babylonHeight.value = babylonWidth.value * 0.5;
     }
 
-    console.log('Resize canvas to', babylonWidth.value, babylonHeight.value);
-
     const currentBabylonCanvas = getBabylonCanvas();
     currentBabylonCanvas?.getSceneInformation()?.engine.resize();
 
@@ -454,6 +455,48 @@
 
     ctx.value.closePath()
   }
+
+  //================================//
+  const getTouchPos = (e: TouchEvent): { x: number; y: number } => {
+    const canvas = getCanvas();
+    if (!canvas) return { x: 0, y: 0 };
+
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    return {
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top
+    };
+  };
+
+  //================================//
+  const startDrawingTouch = (e: TouchEvent): void => {
+    isDrawing.value = true;
+    const { x, y } = getTouchPos(e);
+
+    if (!ctx.value) return;
+
+    if (!hasDrawn.value) {
+      hasDrawn.value = true;
+      const currentCanvas = getCanvas();
+      if (!currentCanvas) return;
+      ctx.value.clearRect(0, 0, currentCanvas.width, currentCanvas.height);
+      ctx.value.fillStyle = 'black';
+      ctx.value.fillRect(0, 0, currentCanvas.width, currentCanvas.height);
+    }
+
+    ctx.value.beginPath();
+    ctx.value.moveTo(x, y);
+  };
+
+  //================================//
+  const drawTouch = (e: TouchEvent): void => {
+    if (!isDrawing.value || !ctx.value) return;
+
+    const { x, y } = getTouchPos(e);
+    ctx.value.lineTo(x, y);
+    ctx.value.stroke();
+  };
 
   //================================//
   const resetDrawingCanvas = (): void => {
