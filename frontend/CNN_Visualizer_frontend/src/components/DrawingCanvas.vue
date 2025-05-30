@@ -395,6 +395,12 @@
   //================================//
   const resizeCanvas = () => {
     const currentCanvas = getCanvas();
+    if (!currentCanvas) return;
+
+    const currentCtx = currentCanvas.getContext('2d');
+    if (!currentCtx) return;
+
+    const imageBeforeResize = currentCanvas.toDataURL();
 
     if (isMobile.value) {
       // For mobile, set a fixed size
@@ -427,16 +433,24 @@
     currentCanvas.width = size
     currentCanvas.height = size
 
+    ctx.value = currentCanvas.getContext('2d');
+
     if (ctx.value) {
       ctx.value.lineWidth = size * 0.06  // Keep thickness proportional
       ctx.value.lineCap = 'round'
       ctx.value.strokeStyle = '#FFF'
       ctx.value.fillStyle = 'black'
       
-      if(!isMobile.value) ctx.value.fillRect(0, 0, size, size)
+      ctx.value.fillRect(0, 0, size, size)
 
       if (!hasDrawn.value) {
         drawInitialText()
+      } else {
+        const img = new Image();
+        img.onload = () => {
+          ctx.value?.drawImage(img, 0, 0, size, size);
+        };
+        img.src = imageBeforeResize;
       }
     }
   }
