@@ -64,7 +64,6 @@ const ANIMATION_LOOKATS = [
 ]
 
 //================================//
-/*
 const ANIMATION_CUBES = [   // From -> To
     [1, 2],
     [2, 8],
@@ -75,7 +74,6 @@ const ANIMATION_CUBES = [   // From -> To
     [47, 49],
     [49, 50]
 ]
-*/
 
 //================================//
 const ANIMATION_STEPS = [
@@ -1371,20 +1369,14 @@ const goToStep = async function(sceneInformation: SceneInformation, index: int) 
         return result;
     };
 
-    await safeAwait(setTimedCameraPosition(sceneInformation, ANIMATION_PLACEMENTS[index], 400));
-    await safeAwait(setTimedCameraLookAt(sceneInformation, ANIMATION_LOOKATS[index], 150));
-
-    const stepText: TextBlock | undefined = sceneInformation.stepTexts ? sceneInformation.stepTexts[index] : undefined;
-    if (stepText) {
-        stepText.isVisible = true;
-    }
-
-    // Should I keep this?
-    /*
     const cubes = sceneInformation.cubeInstances ?? [];
-    cubes.forEach((cube: Mesh) => {
+    cubes[0].isVisible = true;
+    cubes.slice(1).forEach((cube: Mesh) => {
         cube.isVisible = false;
     });
+
+    await safeAwait(setTimedCameraPosition(sceneInformation, ANIMATION_PLACEMENTS[index], 400));
+    await safeAwait(setTimedCameraLookAt(sceneInformation, ANIMATION_LOOKATS[index], 150));
 
     const stepCubes = ANIMATION_CUBES[index];
     for (let i = stepCubes[0]; i < stepCubes[1]; i++)
@@ -1394,7 +1386,12 @@ const goToStep = async function(sceneInformation: SceneInformation, index: int) 
             cube.isVisible = true;
         }
     }
-    */
+    cubes[0].isVisible = false;
+
+    const stepText: TextBlock | undefined = sceneInformation.stepTexts ? sceneInformation.stepTexts[index] : undefined;
+    if (stepText) {
+        stepText.isVisible = true;
+    }
 }
 
 //================================//
