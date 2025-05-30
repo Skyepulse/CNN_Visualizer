@@ -2,7 +2,7 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from contextlib import asynccontextmanager
 from Application.database import DatabaseEndpoint
 import uvicorn
@@ -45,6 +45,7 @@ class MyServer(FastAPI, ABC):
         self.add_api_route("/status", self.status_handler, methods=["GET"])
         self.add_api_route("/helloworld", self.hello_handler, methods=["GET"])
         self.add_api_route("/images", self.images_handler, methods=["GET"])
+        self.add_api_route("/latest_image", self.latest_image_handler, methods=["GET"])
 
         # Init DB
         self.db = DatabaseEndpoint(
@@ -107,6 +108,24 @@ class MyServer(FastAPI, ABC):
     async def hello_handler(self):
         return PlainTextResponse("hello world")
     
+    #==========================#
+    async def latest_image_handler(self):
+        row = await self.db.get_images(1)
+        
+        if not row:
+            svg = '''
+            <svg xmlns="http://www.w3.org/2000/svg" width="200" height="20">
+                <rect width="200" height="20" fill="#e05d44"/>
+                <text x="10" y="14" fill="#fff">No images found</text>
+            </svg>
+            '''
+            return Response(content=svg, media_type="image/svg+xml")
+
+        row = row[0]
+        image_data = row["image_data"]
+        
+        return Response(content=image_data, media_type="image/png")
+
     #==========================#
     async def images_handler(self):
         rows = await self.db.get_images(20)
