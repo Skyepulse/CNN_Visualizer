@@ -136,7 +136,6 @@ let numInstances = 0;
 export const createScene = async function (canvas: HTMLCanvasElement, fpsDisplay?: HTMLElement): Promise<SceneInformation> {
     const engine = new Engine(canvas, true);
     TEXT_SIZE = Math.round(canvas.height * 0.05);
-    console.log("TEXT_SIZE", TEXT_SIZE);
     const inRenderLoop = () => {
         if (fpsDisplay) {
             const fps = engine.getFps();

@@ -150,7 +150,7 @@
             :height="babylonHeight"
             :width="babylonWidth" 
             :fpsDisplay="fpsDisplay" 
-            ref="bbCanvasRef"
+            ref="mobilebbCanvasRef"
           >
       </BabylonCanvas>
       <div class="flex justify-center flex-wrap mt-3 mb-3">
@@ -297,6 +297,7 @@
   import { sendImageData } from '@src/composables/auxiliaries'
   import { useResponsive } from '@src/composables/useresponsive'
   import { nextTick } from 'vue'
+  import { watch } from 'vue'
 
   //================================//
   const { messages } = useWebSocket()
@@ -313,8 +314,8 @@
   //================================//
   const canvas = ref<HTMLCanvasElement | null>(null)
   const mobileCanvas = ref<HTMLCanvasElement | null>(null)
-
   const getCanvas = (): HTMLCanvasElement | null => isMobile.value ? mobileCanvas.value : canvas.value;
+
   const canvasContainer = ref<HTMLDivElement | null>(null)
   const isDrawing = ref<boolean>(false)
   const ctx = ref<CanvasRenderingContext2D | null>(null)
@@ -329,6 +330,9 @@
   const hasDrawn = ref<boolean>(false)
 
   const bbCanvasRef = ref<InstanceType<typeof BabylonCanvas> | null>(null)
+  const mobilebbCanvasRef = ref<InstanceType<typeof BabylonCanvas> | null>(null)
+
+  const getBabylonCanvas = (): InstanceType<typeof BabylonCanvas> | null => isMobile.value ? mobilebbCanvasRef.value: bbCanvasRef.value;
 
   const navigation = ref<boolean | null>(null)
 
@@ -347,27 +351,25 @@
       currentCanvas = getCanvas();
     }
 
-    if (!currentCanvas) return
+    if (!currentCanvas) return;
 
-    ctx.value = currentCanvas.getContext('2d')
+    resetDrawingCanvas();
 
-    if (!ctx.value) return
-
-    ctx.value.lineWidth = 25
-    ctx.value.lineCap = 'round'
-    ctx.value.strokeStyle = '#FFF'
-    
-    ctx.value.clearRect(0, 0, currentCanvas.width, currentCanvas.height)
-    ctx.value.fillStyle='black'
-    ctx.value.fillRect(0, 0, currentCanvas.width, currentCanvas.height)
-
-    resizeCanvas()
-
-    window.addEventListener('resize', resizeCanvas)
+    window.addEventListener('resize', resizeCanvas);
   })
 
   onUnmounted(() => {
-    window.removeEventListener('resize', resizeCanvas)
+    window.removeEventListener('resize', resizeCanvas);
+  })
+
+  watch(getCanvas, (newVal, oldVal) => {
+    if (newVal !== oldVal) {
+      resetBabylonScene(bbCanvasRef?.value);
+      resetBabylonScene(mobilebbCanvasRef?.value);
+
+      nextTick();
+      resetDrawingCanvas();
+    }
   })
 
   //================================//
@@ -394,9 +396,12 @@
     if (isMobile.value) {
       // For mobile, set a fixed size
       const screenWidth = window.innerWidth - 16;
+      console.log('Screen width:', screenWidth);
       // Keep a 1:2 aspect ratio
       babylonWidth.value = screenWidth;
       babylonHeight.value = screenWidth * 0.5;
+
+      console.log('Babylon canvas size:', babylonWidth.value, babylonHeight.value);
     }
 
     if (!currentCanvas) return
@@ -444,12 +449,35 @@
   }
 
   //================================//
+  const resetDrawingCanvas = (): void => {
+    const currentCanvas = getCanvas();
+
+    if (!currentCanvas) return
+
+    ctx.value = currentCanvas.getContext('2d')
+
+    if (!ctx.value) return
+
+    ctx.value.lineWidth = 25
+    ctx.value.lineCap = 'round'
+    ctx.value.strokeStyle = '#FFF'
+    
+    ctx.value.clearRect(0, 0, currentCanvas.width, currentCanvas.height)
+    ctx.value.fillStyle='black'
+    ctx.value.fillRect(0, 0, currentCanvas.width, currentCanvas.height)
+
+    hasDrawn.value = false
+    resizeCanvas()
+  }
+
+  //================================//
   const getX = (e: MouseEvent): number => e.offsetX
   const getY = (e: MouseEvent): number => e.offsetY
 
   //================================//
   const cleanup = (): void => {
     const currentCanvas = getCanvas();
+
     if (!currentCanvas || !ctx.value) return
 
     navigation.value = false
@@ -469,14 +497,26 @@
     drawInitialText()
 
     // reset scene
-    if(bbCanvasRef.value?.getSceneInformation() !== undefined && bbCanvasRef.value?.getSceneInformation() !== null){
-      const sceneInfo: SceneInformation = bbCanvasRef.value.getSceneInformation() as SceneInformation
-      resetScene(sceneInfo)
+    resetBabylonScene(getBabylonCanvas());
+  }
+
+  //================================//
+  const resetBabylonScene = (bbcanvas: InstanceType<typeof BabylonCanvas> | null): void =>
+  {
+    if (!bbcanvas) return;
+
+    if(bbcanvas.getSceneInformation() !== undefined && bbcanvas.getSceneInformation() !== null){
+      const sceneInfo: SceneInformation = bbcanvas.getSceneInformation() as SceneInformation;
+      resetScene(sceneInfo);
     }
 
-    // reset center image
-    outputImageSource.value = ''
+    outputImageSource.value = '';
     hasImage.value = false
+
+    if (numberInput.value) {
+      numberInput.value.value = '';
+      realNumber.value = null;
+    }
   }
 
   //================================//
@@ -568,8 +608,10 @@
         outputImageSource.value = await saveVisualAsPNG(originalImage)
         hasImage.value = true
 
-        if(bbCanvasRef.value?.getSceneInformation() !== undefined && bbCanvasRef.value?.getSceneInformation() !== null){
-          const sceneInfo: SceneInformation = bbCanvasRef.value.getSceneInformation() as SceneInformation
+        const currentBBCanvas = getBabylonCanvas();
+
+        if(currentBBCanvas?.getSceneInformation() !== undefined && currentBBCanvas?.getSceneInformation() !== null){
+          const sceneInfo: SceneInformation = currentBBCanvas.getSceneInformation() as SceneInformation
           
           await launchMnistAnimation(sceneInfo, decodedVisuals, transformedPredictions).then(() => {
             navigation.value = true;

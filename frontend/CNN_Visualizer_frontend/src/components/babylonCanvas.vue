@@ -6,7 +6,7 @@
 </template>
 
 <script setup lang="ts">
-    import { onMounted, ref } from 'vue';
+    import { onMounted, ref} from 'vue';
     import { createScene, goUp, goDown, goLeft, goRight } from '@src/scenes/MyFirstScene';
     import type { SceneInformation } from '@src/scenes/MyFirstScene';
 
@@ -20,11 +20,6 @@
     //================================//
     const bjsCanvas = ref<HTMLCanvasElement | null>(null);
     const sceneInfo = ref<SceneInformation | null>(null);
-
-    //================================//
-    defineExpose({
-        getSceneInformation: () => sceneInfo.value
-    });
 
     //================================//
     onMounted(async () => {
@@ -66,5 +61,10 @@
                 }
             });
         }
+    });
+
+    //================================//
+    defineExpose({
+        getSceneInformation: () => sceneInfo.value,
     });
 </script>
