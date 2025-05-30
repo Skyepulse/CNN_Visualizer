@@ -3,7 +3,7 @@ import asyncio
 from typing import Optional
 
 class DatabaseEndpoint:
-    def __init__(self, host: str, port: int, user: str, password: str, dbname: str, max_images: int = 20):
+    def __init__(self, host: str, port: int, user: str, password: str, dbname: str, max_images: int = 2000):
         self.dsn = f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
         self.max_images = max_images
         self.pool: Optional[asyncpg.Pool] = None

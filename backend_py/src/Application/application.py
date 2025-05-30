@@ -53,7 +53,7 @@ class MyServer(FastAPI, ABC):
             user=DB_CONFIG["user"],
             password=DB_CONFIG["password"],
             dbname=DB_CONFIG["dbname"],
-            max_images=20
+            max_images=2000
         )
 
     #==========================#
@@ -109,7 +109,7 @@ class MyServer(FastAPI, ABC):
     
     #==========================#
     async def images_handler(self):
-        rows = await self.db.get_images(self.db.max_images)
+        rows = await self.db.get_images(20)
         
         images = []
 
@@ -130,7 +130,8 @@ class MyServer(FastAPI, ABC):
         
         if not images:
             return JSONResponse(content={"message": "No images found."})
-        
+
+        print(f"Returning {len(images)} images.")
         return JSONResponse(content=images)
     
     #==========================#
