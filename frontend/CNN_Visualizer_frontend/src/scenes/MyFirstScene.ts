@@ -98,7 +98,7 @@ const ANIMATION_TEXT_PLACEMENTS = [
     {vertical_alignment: Control.VERTICAL_ALIGNMENT_TOP, horizontal_alignment: Control.HORIZONTAL_ALIGNMENT_CENTER, left: "0%", top: "0%", width: "50%", height: "auto"},
     {vertical_alignment: Control.VERTICAL_ALIGNMENT_TOP, horizontal_alignment: Control.HORIZONTAL_ALIGNMENT_RIGHT, left: "0%", top: "0%", width: "60%", height: "auto"},
     {vertical_alignment: Control.VERTICAL_ALIGNMENT_CENTER, horizontal_alignment: Control.HORIZONTAL_ALIGNMENT_LEFT, left: "0%", top: "0%", width: "25%", height: "auto"},
-    {vertical_alignment: Control.VERTICAL_ALIGNMENT_BOTTOM, horizontal_alignment: Control.HORIZONTAL_ALIGNMENT_CENTER, left: "0%", top: "0%", width: "95%", height: "auto"},
+    {vertical_alignment: Control.VERTICAL_ALIGNMENT_BOTTOM, horizontal_alignment: Control.HORIZONTAL_ALIGNMENT_CENTER, left: "0%", top: "0%", width: "98%", height: "auto"},
 ]
 
 //================================//
