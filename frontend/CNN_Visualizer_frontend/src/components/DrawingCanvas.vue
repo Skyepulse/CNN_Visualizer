@@ -432,7 +432,8 @@
       ctx.value.lineCap = 'round'
       ctx.value.strokeStyle = '#FFF'
       ctx.value.fillStyle = 'black'
-      ctx.value.fillRect(0, 0, size, size)
+      
+      if(!isMobile.value) ctx.value.fillRect(0, 0, size, size)
 
       if (!hasDrawn.value) {
         drawInitialText()
@@ -517,6 +518,7 @@
     ctx.value.fillRect(0, 0, currentCanvas.width, currentCanvas.height)
 
     hasDrawn.value = false
+
     resizeCanvas()
   }
 
