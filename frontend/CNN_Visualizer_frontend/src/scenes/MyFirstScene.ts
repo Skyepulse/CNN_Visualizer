@@ -114,6 +114,8 @@ export type SceneInformation = {
     fullScreenGUI?: AdvancedDynamicTexture,
     stepTexts?: TextBlock[],
     predictionMeshes?: Mesh[],
+    numbersMeshes?: Mesh[],
+    DIGIT_MATERIAL?: StandardMaterial,
     IntroText: TextBlock,
     currentStep: int
 };
@@ -163,6 +165,7 @@ export const createScene = async function (canvas: HTMLCanvasElement, fpsDisplay
         cubeInstances: [],
         stepTexts: [],
         predictionMeshes: [],
+        numbersMeshes: [],
     };
     
     resetScene(sceneInformation);
@@ -937,10 +940,13 @@ const getColorFromName = (colorName: string): string => {
 //================================//
 export const animatePredictionNumber = async function(sceneInformation: SceneInformation, number: number, startPosition: Vector3, endPosition: Vector3, startScale: float, endScale: float, time: float, color: string = 'white'): Promise<void>
 {
-    if (sceneInformation === null || sceneInformation.scene === undefined || sceneInformation.predictionMeshes == undefined || sceneInformation.camera === undefined) return;
+    if (sceneInformation === null || sceneInformation.scene === undefined || sceneInformation.predictionMeshes == undefined || sceneInformation.camera === undefined || sceneInformation.numbersMeshes === undefined) return;
 
     const text: Mesh | null = MeshBuilder.CreateText(`text_${sceneInformation.predictionMeshes.length}`, `${number}%`, fontData, {size: 0.25, resolution: 16, depth: 0.1}, sceneInformation.scene, earcut);
     if (!text) return;
+
+    const digit: Mesh | null = MeshBuilder.CreateText(`digit_${sceneInformation.numbersMeshes.length}`, `${sceneInformation.numbersMeshes.length}`, fontData, {size: 0.25, resolution: 16, depth: 0.1}, sceneInformation.scene, earcut);
+    if (!digit) return;
 
     text.position.set(startPosition.x, startPosition.y, startPosition.z);
     text.lookAt(sceneInformation.camera.position);
@@ -949,13 +955,22 @@ export const animatePredictionNumber = async function(sceneInformation: SceneInf
     text.scaling.set(startScale, startScale, startScale);
     text.setEnabled(true);
 
+    digit.position.set(startPosition.x + 0.05 * sceneInformation.numbersMeshes.length, startPosition.y, startPosition.z);
+    digit.scaling.set(startScale, startScale, startScale);
+    digit.setEnabled(true);
+    
+
     // Create Standard Material for the text
     const material = new StandardMaterial(`textMaterial_${sceneInformation.predictionMeshes.length}`, sceneInformation.scene);
     material.diffuseColor = Color3.FromHexString(getColorFromName(color));
 
     text.material = material;
+    
+    if (sceneInformation.DIGIT_MATERIAL)
+    digit.material = sceneInformation.DIGIT_MATERIAL;
 
     sceneInformation.predictionMeshes.push(text);
+    sceneInformation.numbersMeshes.push(digit);
 
     const currentToken = sceneInformation.animationToken ?? 0;
     const startTime = performance.now();
@@ -976,6 +991,10 @@ export const animatePredictionNumber = async function(sceneInformation: SceneInf
             text!.scaling.x = startScale + (endScale - startScale) * t;
             text!.scaling.y = startScale + (endScale - startScale) * t;
             text!.scaling.z = startScale + (endScale - startScale) * t;
+
+            digit!.scaling.x = startScale + (endScale - startScale) * t;
+            digit!.scaling.y = startScale + (endScale - startScale) * t;
+            digit!.scaling.z = startScale + (endScale - startScale) * t;
 
             if (t < 1) {
                 requestAnimationFrame(animation);
@@ -1015,6 +1034,14 @@ export const resetScene = async function(sceneInformation: SceneInformation): Pr
             if (mesh) mesh.dispose();
         });
         sceneInformation.predictionMeshes = [];
+    }
+
+    if(sceneInformation.numbersMeshes)
+    {
+        sceneInformation.numbersMeshes.forEach((mesh: Mesh) => {
+            if (mesh) mesh.dispose();
+        });
+        sceneInformation.numbersMeshes = [];
     }
 
     sceneInformation.currentStep = ANIMATION_STEPS.length - 1;
@@ -1073,6 +1100,10 @@ export const resetScene = async function(sceneInformation: SceneInformation): Pr
     sceneInformation.IntroText.fontSize = TEXT_SIZE;
     sceneInformation.fullScreenGUI.addControl(sceneInformation.IntroText);
     sceneInformation.IntroText.isVisible = true;
+
+    if (sceneInformation.DIGIT_MATERIAL) sceneInformation.DIGIT_MATERIAL.dispose();
+    sceneInformation.DIGIT_MATERIAL = new StandardMaterial("digitMaterial", sceneInformation.scene);
+    sceneInformation.DIGIT_MATERIAL.diffuseColor = Color3.FromHexString('#ffffff');
     
     //sceneInformation.scene?.debugLayer.show();
 }
