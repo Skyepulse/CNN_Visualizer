@@ -43,7 +43,7 @@ export function useWebSocket(url: string = '') {
     }
 
     async function fetchAPIRoute(route: string) {
-        const response = await fetch(`${apiUrl}/${route}`);
+        const response = await fetch(`${apiUrl}/api/${route}`);
         if (!response.ok) {
             throw new Error(`Error fetching ${route}: ${response.statusText}`);
         }

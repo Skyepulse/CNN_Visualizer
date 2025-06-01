@@ -42,11 +42,11 @@ class MyServer(FastAPI, ABC):
 
         self.add_websocket_route("/ws", self.websocket_endpoint)
 
-        self.add_api_route("/status", self.status_handler, methods=["GET"])
-        self.add_api_route("/helloworld", self.hello_handler, methods=["GET"])
-        self.add_api_route("/images", self.images_handler, methods=["GET"])
-        self.add_api_route("/latest_image", self.latest_image_handler, methods=["GET"])
-        self.add_api_route("/random_image", self.random_image_handler, methods=["GET"])
+        self.add_api_route("/api/status", self.status_handler, methods=["GET"])
+        self.add_api_route("/api/helloworld", self.hello_handler, methods=["GET"])
+        self.add_api_route("/api/images", self.images_handler, methods=["GET"])
+        self.add_api_route("/api/latest_image", self.latest_image_handler, methods=["GET"])
+        self.add_api_route("/api/random_image", self.random_image_handler, methods=["GET"])
 
         # Init DB
         self.db = DatabaseEndpoint(
@@ -120,7 +120,7 @@ class MyServer(FastAPI, ABC):
                 <text x="10" y="14" fill="#fff">No images found</text>
             </svg>
             '''
-            
+
             return Response(content=svg, media_type="image/svg+xml")
     
     #==========================#
