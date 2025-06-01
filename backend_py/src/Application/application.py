@@ -113,6 +113,8 @@ class MyServer(FastAPI, ABC):
     async def random_image_handler(self):
         row = await self.db.get_random_image()
 
+        print(f"Returning random image: {row}")
+
         if not row:
             svg = '''
             <svg xmlns="http://www.w3.org/2000/svg" width="200" height="20">
@@ -123,9 +125,8 @@ class MyServer(FastAPI, ABC):
 
             return Response(content=svg, media_type="image/svg+xml")
         
-        row = row[0]
         image_data = row["image_data"]
-        
+
         return Response(content=image_data, media_type="image/png")
     
     #==========================#
