@@ -122,6 +122,11 @@ class MyServer(FastAPI, ABC):
             '''
 
             return Response(content=svg, media_type="image/svg+xml")
+        
+        row = row[0]
+        image_data = row["image_data"]
+        
+        return Response(content=image_data, media_type="image/png")
     
     #==========================#
     async def latest_image_handler(self):
