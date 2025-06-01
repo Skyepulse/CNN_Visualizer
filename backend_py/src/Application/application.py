@@ -46,6 +46,7 @@ class MyServer(FastAPI, ABC):
         self.add_api_route("/helloworld", self.hello_handler, methods=["GET"])
         self.add_api_route("/images", self.images_handler, methods=["GET"])
         self.add_api_route("/latest_image", self.latest_image_handler, methods=["GET"])
+        self.add_api_route("/random_image", self.random_image_handler, methods=["GET"])
 
         # Init DB
         self.db = DatabaseEndpoint(
@@ -107,6 +108,20 @@ class MyServer(FastAPI, ABC):
     #==========================#
     async def hello_handler(self):
         return PlainTextResponse("hello world")
+
+    #==========================#
+    async def random_image_handler(self):
+        row = await self.db.get_random_image()
+
+        if not row:
+            svg = '''
+            <svg xmlns="http://www.w3.org/2000/svg" width="200" height="20">
+                <rect width="200" height="20" fill="#e05d44"/>
+                <text x="10" y="14" fill="#fff">No images found</text>
+            </svg>
+            '''
+            
+            return Response(content=svg, media_type="image/svg+xml")
     
     #==========================#
     async def latest_image_handler(self):

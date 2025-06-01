@@ -51,6 +51,27 @@ class DatabaseEndpoint:
             """, limit)
 
         return rows
+
+    async def get_random_image(self):
+        # Select random image from the latest 30 images
+        if self.pool is None:
+            raise RuntimeError("Database not initialized. Call init_db() first.")
+        
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow("""
+                WITH recent_images AS (
+                    SELECT image_data, prediction, real, client_name
+                    FROM mnist_images
+                    ORDER BY created_at DESC
+                    LIMIT 30
+                )
+                SELECT image_data, prediction, real, client_name
+                FROM recent_images
+                ORDER BY RANDOM()
+                LIMIT 1
+            """)
+
+        return row if row else None
     
     async def debounce_cleanup(self, delay: float = 1.5):
         async with self._cleanup_lock:
