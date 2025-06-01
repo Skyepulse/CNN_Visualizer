@@ -16,7 +16,7 @@
               @touchend="stopDrawing"
             >
             </canvas>
-            <div class="flex flex-row w-full h-full">
+            <div class="flex flex-row items-end justify-between w-full h-full">
               <div
                 class="relative border-2 border-gray-300 rounded w-[150px] h-[150px] flex items-center justify-center"
               >
@@ -30,6 +30,13 @@
                       Your downscaled image sent to the model will appear here
                   </p>
               </div>
+              <a href="https://github.com/Skyepulse">
+                <img
+                  src="@assets/github-mark.svg"
+                    alt="GitHub Logo"
+                    class="w-full p-1 object-contain bg-white rounded hover:shadow-[0_0_10px_#fff,0_0_20px_#fff,0_0_30px_#e60073] transition-shadow duration-300"
+                />
+              </a>
             </div>
         </div>
         <div class="flex flex-col w-2/3 space-y-4">
@@ -254,19 +261,28 @@
           </div>
       </div>
       <div ref="canvasContainer" class="flex flex-row m-0 p-0 w-full justify-center">
-        <div
-          ref="mobileDownscaledImageContainer"
-          class="relative border-2 border-gray-300 rounded flex items-center justify-center"
-        >
-            <img
-                v-if="hasImage"
-                :src="outputImageSource"
-                alt="Output"
-                class="w-full h-full object-contain"
-            />
-            <p v-else class=" text-shadow-zinc-50 font-bold text-center text-gray-400 text-[3vw]">
-                Your downscaled image sent to the model will appear here
-            </p>
+        <div class="flex flex-col items-center justify-start space-y-10 w-full h-full">
+          <div
+            ref="mobileDownscaledImageContainer"
+            class="relative border-2 border-gray-300 rounded flex items-center justify-center"
+          >
+              <img
+                  v-if="hasImage"
+                  :src="outputImageSource"
+                  alt="Output"
+                  class="w-full h-full object-contain"
+              />
+              <p v-else class=" text-shadow-zinc-50 font-bold text-center text-gray-400 text-[3vw]">
+                  Your downscaled image sent to the model will appear here
+              </p>
+          </div>
+          <a href="https://github.com/Skyepulse" class="w-[50%] p-1 flex items-center justify-center">
+              <img
+                src="@assets/github-mark.svg"
+                  alt="GitHub Logo"
+                  class="neon w-full p-1 object-contain bg-white rounded"
+              />
+          </a>
         </div>
         <canvas
           ref="mobileCanvas"

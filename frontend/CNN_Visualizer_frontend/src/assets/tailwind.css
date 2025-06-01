@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@tailwind utilities;
 
 :root {
     font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -35,3 +36,12 @@
     flex-direction: column;
     align-items: stretch;
   }
+
+@layer components {
+  /* .btn-primary {
+      @apply py-1.5 px-3 text-center bg-blue-700 rounded-md text-white;
+  } */
+    .neon {
+            box-shadow: 0 0 25px #ff00de;
+        }
+}
