@@ -1,5 +1,6 @@
-
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from datetime import datetime, timezone
+import uuid
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from fastapi.responses import JSONResponse, Response
@@ -47,6 +48,7 @@ class MyServer(FastAPI, ABC):
         self.add_api_route("/api/images", self.images_handler, methods=["GET"])
         self.add_api_route("/api/latest_image", self.latest_image_handler, methods=["GET"])
         self.add_api_route("/api/random_image", self.random_image_handler, methods=["GET"])
+        self.add_api_route("/api/last_connections", self.last_connections_handler, methods=["GET"])
 
         # Init DB
         self.db = DatabaseEndpoint(
@@ -63,6 +65,8 @@ class MyServer(FastAPI, ABC):
         await websocket.accept()
         try:
             self.connected_clients.add(websocket)
+            uuidClient = uuid.uuid4()
+            await self.db.log_connection(uuidClient, datetime.now(timezone.utc))
             self.number_of_clients += 1
             await self.on_connect(websocket)
 
@@ -84,6 +88,7 @@ class MyServer(FastAPI, ABC):
         except WebSocketDisconnect:
             await self.on_disconnect(websocket)
             self.connected_clients.remove(websocket)
+            await self.db.log_disconnection(uuidClient, datetime.now(timezone.utc))
             self.number_of_clients -= 1
     
     #==========================#
@@ -100,6 +105,31 @@ class MyServer(FastAPI, ABC):
     @abstractmethod
     async def on_connect(self, websocket: WebSocket):
         pass
+
+    #==========================#
+    async def last_connections_handler(self, hours: int = Query(default=1, ge=1, le=168)):
+        rows = await self.db.get_connections_last_hours(hours)
+
+        result = []
+        try:
+            for row in rows:
+                result.append({
+                    "uuid": str(row["session_uuid"]),
+                    "connected_at": row["connected_at"].astimezone().isoformat(),
+                    "disconnected_at": (
+                        row["disconnected_at"].astimezone().isoformat()
+                        if row["disconnected_at"] else None
+                    )
+                })
+                
+        except Exception as e:
+            print(f"Error processing connection data: {e}")
+            return JSONResponse(content={"message": "Error processing connection data."}, status_code=500)
+
+        if not result:
+            return JSONResponse(content={"message": "No connections found."}, status_code=404)
+
+        return JSONResponse(content={"connections": result})
 
     #==========================#
     async def status_handler(self):

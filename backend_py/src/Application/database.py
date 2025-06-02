@@ -1,7 +1,9 @@
+from datetime import datetime, timedelta, timezone
 import asyncpg
 import asyncio
 from typing import Optional
 
+#==========================#
 class DatabaseEndpoint:
     def __init__(self, host: str, port: int, user: str, password: str, dbname: str, max_images: int = 2000):
         self.dsn = f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
@@ -13,10 +15,12 @@ class DatabaseEndpoint:
         self._cleanup_lock = asyncio.Lock()
         self._cleanup_interval = 1.5 # seconds
 
+    #==========================#
     async def init_db(self):
         if self.pool is None:
             self.pool = await asyncpg.create_pool(dsn=self.dsn)
 
+    #==========================#
     async def insert_and_cleanup_image(
         self,
         image_data: bytes,
@@ -38,6 +42,7 @@ class DatabaseEndpoint:
         
         await self.debounce_cleanup(delay=self._cleanup_interval)
     
+    #==========================#
     async def get_images(self, limit: int = 10):
         if self.pool is None:
             raise RuntimeError("Database not initialized. Call init_db() first.")
@@ -52,6 +57,7 @@ class DatabaseEndpoint:
 
         return rows
 
+    #==========================#
     async def get_random_image(self):
         # Select random image from the latest 30 images
         if self.pool is None:
@@ -73,6 +79,7 @@ class DatabaseEndpoint:
 
         return row if row else None
     
+    #==========================#
     async def debounce_cleanup(self, delay: float = 1.5):
         async with self._cleanup_lock:
 
@@ -81,6 +88,7 @@ class DatabaseEndpoint:
 
             self._cleanup_task = asyncio.create_task(self._delayed_cleanup(delay))
 
+    #==========================#
     async def _delayed_cleanup(self, delay: float):
         try:
             await asyncio.sleep(delay)
@@ -88,6 +96,7 @@ class DatabaseEndpoint:
         except asyncio.CancelledError:
             pass  # Expected if debounce reschedules the cleanup
 
+    #==========================#
     async def cleanup_images(self):
         if self.pool is None:
             raise RuntimeError("Database not initialized.")
@@ -103,3 +112,43 @@ class DatabaseEndpoint:
                     SELECT id FROM ranked WHERE rnk > $1
                 )
             """, self.max_images)
+
+    #==========================#
+    async def log_connection(self, uuid: str, connected_at: datetime):
+        if self.pool is None:
+            raise RuntimeError("Database not initialized. Call init_db() first.")
+
+        async with self.pool.acquire() as conn:
+            await conn.execute("""
+                INSERT INTO connections (session_uuid, connected_at)
+                VALUES ($1, $2)
+            """, uuid, connected_at)
+    
+    #==========================#
+    async def log_disconnection(self, uuid: str, disconnected_at: datetime):
+        if self.pool is None:
+            raise RuntimeError("Database not initialized. Call init_db() first.")
+
+        async with self.pool.acquire() as conn:
+            await conn.execute("""
+                UPDATE connections
+                SET disconnected_at = $1
+                WHERE session_uuid = $2 AND disconnected_at IS NULL
+            """, disconnected_at, uuid)
+
+    #==========================#
+    async def get_connections_last_hours(self, hours: int = 1):
+        if self.pool is None:
+            raise RuntimeError("Database not initialized. Call init_db() first.")
+
+        since_time = datetime.now(timezone.utc) - timedelta(hours=hours)
+
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch("""
+                SELECT session_uuid, connected_at, disconnected_at
+                FROM connections
+                WHERE connected_at >= $1
+                ORDER BY connected_at DESC
+            """, since_time)
+
+        return rows

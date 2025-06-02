@@ -10,9 +10,9 @@ BACKEND_WS_URL = os.getenv("BACKEND_WS_URL", f"ws://localhost:{5000}/ws")
 API_URL = os.getenv("BACKEND_API_URL", f"http://localhost:{5000}")
 
 API_TEST_ENDPOINTS = [
-    "/status",
-    "/images",
-    "/helloworld"
+    "/api/status",
+    "/api/images",
+    "/api/helloworld"
 ]
 
 @pytest.mark.asyncio
