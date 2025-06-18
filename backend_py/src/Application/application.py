@@ -4,6 +4,8 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from fastapi.responses import JSONResponse, Response
+from fastapi.requests import Request
+from fastapi import HTTPException
 from contextlib import asynccontextmanager
 from Application.database import DatabaseEndpoint
 import uvicorn
@@ -11,7 +13,11 @@ import json
 from abc import ABC, abstractmethod
 from Config.config import DB_CONFIG
 from Config.config import BACKEND_PROXY_HEADERS
+from Config.config import BACKEND_EMAIL
 import base64
+from pydantic import BaseModel, EmailStr
+import smtplib
+from email.message import EmailMessage
 
 #==========================#
 @asynccontextmanager
@@ -49,6 +55,7 @@ class MyServer(FastAPI, ABC):
         self.add_api_route("/api/latest_image", self.latest_image_handler, methods=["GET"])
         self.add_api_route("/api/random_image", self.random_image_handler, methods=["GET"])
         self.add_api_route("/api/last_connections", self.last_connections_handler, methods=["GET"])
+        self.add_api_route("/api/contact", self.contact_handler, methods=["POST"])
 
         # Init DB
         self.db = DatabaseEndpoint(
@@ -138,6 +145,21 @@ class MyServer(FastAPI, ABC):
     #==========================#
     async def hello_handler(self):
         return PlainTextResponse("hello world")
+    
+    #==========================#
+    async def contact_handler(self, request: Request):
+        try:
+            data = await request.json()
+            form = ContactForm(**data)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail="Invalid input") from e
+
+        msg = EmailMessage()
+        msg["Subject"] = f"Contact Form: {form.subject}"
+        msg["From"] = form.email
+        msg.set_content(form.message)
+
+        print(f"Sending email from {form.email} with subject '{form.subject}' with content {form.message}")
 
     #==========================#
     async def random_image_handler(self):
@@ -221,3 +243,9 @@ class MyServer(FastAPI, ABC):
         
         message = json.dumps({"type": type, "data": data})
         await websocket.send_text(message)
+
+#==========================#
+class ContactForm(BaseModel):
+    email: EmailStr
+    subject: str
+    message: str
