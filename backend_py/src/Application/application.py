@@ -14,6 +14,7 @@ from abc import ABC, abstractmethod
 from Config.config import DB_CONFIG
 from Config.config import BACKEND_PROXY_HEADERS
 from Config.config import BACKEND_EMAIL
+from Config.config import BACKEND_EMAIL_PASSWORD
 import base64
 from pydantic import BaseModel, EmailStr
 import smtplib
@@ -66,6 +67,12 @@ class MyServer(FastAPI, ABC):
             dbname=DB_CONFIG["dbname"],
             max_images=2000
         )
+
+        #init email smtp connection
+        self.smtp = smtplib.SMTP('smtp.gmail.com', 587)
+        self.smtp.starttls()
+        self.smtp.starttls()
+        self.smtp.login(BACKEND_EMAIL, BACKEND_EMAIL_PASSWORD)
 
     #==========================#
     async def websocket_endpoint(self, websocket: WebSocket):
@@ -158,8 +165,15 @@ class MyServer(FastAPI, ABC):
         msg["Subject"] = f"Contact Form: {form.subject}"
         msg["From"] = form.email
         msg.set_content(form.message)
+        msg["To"] = BACKEND_EMAIL
 
-        print(f"Sending email from {form.email} with subject '{form.subject}' with content {form.message}")
+        try:
+            self.smtp.send_message(msg)
+            print(f"Email sent from {form.email} with subject '{form.subject}'")
+            return JSONResponse(content={"message": "Email sent successfully."}, status_code=200)
+        except Exception as e:
+            print(f"Failed to send email: {e}")
+            raise HTTPException(status_code=500, detail="Failed to send email") from e
 
     #==========================#
     async def random_image_handler(self):
