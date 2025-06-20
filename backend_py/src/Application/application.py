@@ -160,7 +160,10 @@ class MyServer(FastAPI, ABC):
 
         print(f"Received contact message from {email} with subject '{subject}'.")
 
-        self.db.store_contact_message(email, subject, message)
+        result = await self.db.store_contact_message(email, subject, message)
+
+        if not result:
+            return JSONResponse(content={"message": "Failed to store contact message."}, status_code=500)
 
         return JSONResponse(content={"message": "Message received successfully."})
 
