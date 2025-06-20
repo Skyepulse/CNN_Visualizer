@@ -159,8 +159,13 @@ class DatabaseEndpoint:
         
         when = datetime.now(timezone.utc)
         
-        async with self.pool.acquire() as conn:
-            await conn.execute("""
-                INSERT INTO contact_messages (from_email, object, message, when)
-                VALUES ($1, $2, $3, $4)
-            """, from_email, object, message, when)    
+        try:
+            async with self.pool.acquire() as conn:
+                await conn.execute("""
+                    INSERT INTO contact_messages (from_email, object, message, when)
+                    VALUES ($1, $2, $3, $4)
+                """, from_email, object, message, when)    
+        except asyncpg.UniqueViolationError:
+            raise ValueError("A message with the same content already exists.")
+        except Exception as e:
+            raise RuntimeError(f"Failed to store contact message: {e}")

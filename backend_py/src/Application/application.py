@@ -158,6 +158,8 @@ class MyServer(FastAPI, ABC):
         subject = form.subject
         message = form.message
 
+        print(f"Received contact message from {email} with subject '{subject}'.")
+
         self.db.store_contact_message(email, subject, message)
 
         return JSONResponse(content={"message": "Message received successfully."})
