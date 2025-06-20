@@ -158,6 +158,7 @@ class DatabaseEndpoint:
             raise RuntimeError("Database not initialized. Call init_db() first.")
         
         when = datetime.now(timezone.utc)
+        print(f"Storing contact message from {from_email} at {when.isoformat()}")
         
         try:
             async with self.pool.acquire() as conn:
