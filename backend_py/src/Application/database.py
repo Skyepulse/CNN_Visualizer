@@ -163,7 +163,7 @@ class DatabaseEndpoint:
         try:
             async with self.pool.acquire() as conn:
                 await conn.execute("""
-                    INSERT INTO contact_messages (from_email, object, message, created_at)
+                    INSERT INTO contact_messages (from_email, subject, message, created_at)
                     VALUES ($1, $2, $3, $4)
                 """, from_email, subject, message, created_at)    
             return True
