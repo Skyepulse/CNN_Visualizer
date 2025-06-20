@@ -154,12 +154,13 @@ class MyServer(FastAPI, ABC):
         except Exception as e:
             raise HTTPException(status_code=400, detail="Invalid input") from e
 
-        msg = EmailMessage()
-        msg["Subject"] = f"Contact Form: {form.subject}"
-        msg["From"] = form.email
-        msg.set_content(form.message)
+        email = form.email
+        subject = form.subject
+        message = form.message
 
-        print(f"Sending email from {form.email} with subject '{form.subject}' with content {form.message}")
+        self.db.store_contact_message(email, subject, message)
+
+        return JSONResponse(content={"message": "Message received successfully."})
 
     #==========================#
     async def random_image_handler(self):

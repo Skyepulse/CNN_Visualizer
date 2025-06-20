@@ -152,3 +152,15 @@ class DatabaseEndpoint:
             """, since_time)
 
         return rows
+
+    async def store_contact_message(self, from_email: str, object: str, message: str):
+        if self.pool is None:
+            raise RuntimeError("Database not initialized. Call init_db() first.")
+        
+        when = datetime.now(timezone.utc)
+        
+        async with self.pool.acquire() as conn:
+            await conn.execute("""
+                INSERT INTO contact_messages (from_email, object, message, when)
+                VALUES ($1, $2, $3, $4)
+            """, from_email, object, message, when)    
